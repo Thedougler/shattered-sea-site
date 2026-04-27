@@ -5,21 +5,17 @@ from pathlib import Path
 
 from .constants import INDEX_ROW_RE, WIKILINK_RE
 from .ingest_status import compute_sha256, load_manifest_sources
+from .knowledge_layout import detect_knowledge_layout
 
 _DOCUMENT_EXTENSIONS = {".md", ".txt", ".rst"}
 _IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
 
 
 def detect_knowledge_root(repo_root: Path) -> Path | None:
-    content_root = repo_root / "content"
-    wiki_root = repo_root / "wiki"
-    if (content_root / "index.md").exists():
-        return content_root
-    if (wiki_root / "index.md").exists():
-        return wiki_root
-    if (repo_root / "index.md").exists():
-        return repo_root
-    return None
+    layout = detect_knowledge_layout(repo_root)
+    if layout is None:
+        return None
+    return layout.page_root
 
 
 def _source_type_for(path: Path) -> str:
@@ -82,12 +78,14 @@ def build_ingest_prep(repo_root: Path, source_path: str) -> dict[str, object]:
         if _normalize_target(link)
     }
 
-    knowledge_root = detect_knowledge_root(repo_root)
+    layout = detect_knowledge_layout(repo_root)
+    knowledge_root = layout.page_root if layout is not None else None
     index_slugs: set[str] = set()
     knowledge_root_rel = None
-    if knowledge_root is not None:
+    if layout is not None:
+        knowledge_root = layout.page_root
         knowledge_root_rel = knowledge_root.relative_to(repo_root).as_posix() if knowledge_root != repo_root else "."
-        index_path = knowledge_root / "index.md" if knowledge_root != repo_root else repo_root / "index.md"
+        index_path = layout.index_path
         if index_path.exists():
             index_slugs = _load_index_slugs(index_path)
 

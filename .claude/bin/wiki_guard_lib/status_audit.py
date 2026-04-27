@@ -5,13 +5,13 @@ from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
 
+from .inventory import build_page_inventory
 from .models import (
     ProjectDelta,
     StatusSourceRecord,
     VisibilityTally,
     WikiStatusReport,
 )
-from .utils import parse_frontmatter
 
 _TEXT_EXTENSIONS = {
     ".md",
@@ -233,23 +233,27 @@ def _scan_extra_manifest_sources(
 
 
 def _count_wiki_pages_and_visibility(repo_root: Path) -> tuple[int, int, VisibilityTally]:
-    wiki_dir = repo_root / "wiki"
-    if not wiki_dir.exists():
+    pages = build_page_inventory(repo_root)
+    if not pages:
         return (0, 0, VisibilityTally(public=0, internal=0, pii=0, total_pages=0))
 
-    total_pages = 0
+    total_pages = len(pages)
     categories: set[str] = set()
     public = 0
     internal = 0
     pii = 0
 
-    for path in sorted(wiki_dir.rglob("*.md")):
-        total_pages += 1
-        rel_parts = path.relative_to(wiki_dir).parts
-        if rel_parts:
-            categories.add(rel_parts[0])
+    for item in pages.values():
+        rel_path_value = item.get("rel_path")
+        if isinstance(rel_path_value, str):
+            rel_parts = list(Path(rel_path_value).parts)
+            if rel_parts and rel_parts[0] in {"content", "wiki"}:
+                rel_parts = rel_parts[1:]
+            if rel_parts:
+                categories.add(rel_parts[0])
 
-        frontmatter = parse_frontmatter(path.read_text(encoding="utf-8")) or {}
+        frontmatter_value = item.get("frontmatter")
+        frontmatter = frontmatter_value if isinstance(frontmatter_value, dict) else {}
         tags = frontmatter.get("tags")
         tag_values = [str(item) for item in tags] if isinstance(tags, list) else []
         if "visibility/internal" in tag_values:

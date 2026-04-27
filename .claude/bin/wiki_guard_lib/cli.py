@@ -9,8 +9,14 @@ from .ingest_status import (
     has_pending_ingest_sources,
     print_ingest_report,
 )
-from .linting import apply_safe_lint_fixes, gather_lint_results, print_lint_report
-from .query_prep import gather_query_prep, print_query_prep
+from .linting import (
+    apply_safe_lint_fixes,
+    build_lint_summary,
+    gather_lint_results,
+    render_lint_report_json,
+    render_lint_report_text,
+)
+from .query_prep import append_query_log, gather_query_prep, print_query_prep
 from .status_audit import gather_wiki_status, print_wiki_status
 from .synthesis_audit import gather_synthesis_candidates, print_synthesis_report
 from .validation import gather_issues, print_report
@@ -23,8 +29,23 @@ def _validate_args(parser: argparse.ArgumentParser, args: argparse.Namespace) ->
     if args.lint_fail_on_manual and not args.lint_report:
         parser.error("--lint-fail-on-manual requires --lint-report")
 
+    if args.lint_output_file and not args.lint_report:
+        parser.error("--lint-output-file requires --lint-report")
+
+    if args.lint_max_gaps < 0:
+        parser.error("--lint-max-gaps must be >= 0")
+
+    if args.lint_max_gap_pages < 1:
+        parser.error("--lint-max-gap-pages must be >= 1")
+
     if args.query_prep and not args.query_question.strip():
         parser.error("--query-prep requires --query-question")
+
+    if args.query_log and not args.query_prep:
+        parser.error("--query-log requires --query-prep")
+
+    if args.query_result_pages < 0:
+        parser.error("--query-result-pages must be >= 0")
 
     if args.status_report and args.ingest_report:
         parser.error("--status-report cannot be combined with --ingest-report")
@@ -94,12 +115,54 @@ def _run_query(args: argparse.Namespace, repo_root: Path) -> int:
         max_snippets=max(1, args.query_max_snippets),
     )
     print_query_prep(query_result, args.query_format)
+
+    if args.query_log:
+        default_result_pages = len(query_result.primary)
+        result_pages = args.query_result_pages or default_result_pages
+        append_query_log(
+            repo_root,
+            question=args.query_question,
+            result_pages=result_pages,
+            mode=query_result.mode,
+            escalated=args.query_escalated,
+        )
     return 0
 
 
 def _run_lint(args: argparse.Namespace, repo_root: Path) -> int:
     results = gather_lint_results(repo_root)
-    print_lint_report(results, category=args.lint_category, output_format=args.lint_format)
+    report = (
+        render_lint_report_json(
+            results,
+            args.lint_category,
+            max_gaps=args.lint_max_gaps,
+            max_gap_pages=args.lint_max_gap_pages,
+        )
+        if args.lint_format == "json"
+        else render_lint_report_text(
+            results,
+            args.lint_category,
+            max_gaps=args.lint_max_gaps,
+            max_gap_pages=args.lint_max_gap_pages,
+        )
+    )
+
+    extension = "json" if args.lint_format == "json" else "md" if args.lint_format == "markdown" else "txt"
+    output_path = Path(args.lint_output_file) if args.lint_output_file else Path(f".claude/tmp/lint_report.{extension}")
+    if not output_path.is_absolute():
+        output_path = repo_root / output_path
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(report + "\n", encoding="utf-8")
+
+    summary = build_lint_summary(results)
+    print(f"lint report written to {output_path.relative_to(repo_root)}")
+    print(
+        "summary: "
+        f"critical={summary['critical']} "
+        f"structural={summary['structural']} "
+        f"opportunities={summary['opportunities']} "
+        f"health={summary['health_score']}%"
+    )
 
     if args.lint_safe_fix:
         applied = apply_safe_lint_fixes(repo_root, results)
@@ -238,6 +301,25 @@ def main() -> int:
         help="With --lint-report, return non-zero when manual-fix categories are present",
     )
     parser.add_argument(
+        "--lint-max-gaps",
+        type=int,
+        default=25,
+        help="With --lint-report, max entity gaps to emit in report output (default: 25)",
+    )
+    parser.add_argument(
+        "--lint-max-gap-pages",
+        type=int,
+        default=5,
+        help="With --lint-report, max source pages listed per entity gap (default: 5)",
+    )
+    parser.add_argument(
+        "--lint-output-file",
+        default="",
+        help=(
+            "With --lint-report, write report to this path; defaults to .claude/tmp/lint_report.<format>"
+        ),
+    )
+    parser.add_argument(
         "--query-prep",
         action="store_true",
         help="Build query candidate pages/snippets so Claude can synthesize without broad scans",
@@ -280,6 +362,25 @@ def main() -> int:
         type=int,
         default=2,
         help="With --query-prep, max snippets emitted per primary page",
+    )
+    parser.add_argument(
+        "--query-log",
+        action="store_true",
+        help="With --query-prep, append a QUERY operation line to the knowledge log",
+    )
+    parser.add_argument(
+        "--query-result-pages",
+        type=int,
+        default=0,
+        help=(
+            "With --query-log, override result_pages in the log line; "
+            "default uses number of primary pages"
+        ),
+    )
+    parser.add_argument(
+        "--query-escalated",
+        action="store_true",
+        help="With --query-log, mark escalated=true for broad-vault fallback runs",
     )
     parser.add_argument(
         "--synthesize-report",

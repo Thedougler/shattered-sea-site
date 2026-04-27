@@ -336,3 +336,34 @@ def test_status_render_and_print_helpers(capsys, wiki_guard) -> None:
     wiki_guard.print_wiki_status(report, limit=10, pending_only=True, output_format="json")
     out_json = capsys.readouterr().out
     assert '"recommendation": "append"' in out_json
+
+
+def test_gather_wiki_status_supports_content_layout(tmp_path: Path, wiki_guard) -> None:
+    _write_env(tmp_path, "OBSIDIAN_SOURCES_DIR=raw\n")
+    write_page(
+        tmp_path / "content/index.md",
+        """# Index: shattered_sea
+
+## Entity Catalog
+
+| Entity | Summary | Sources | Status | Updated |
+|--------|---------|---------|--------|---------|
+| [[page_one]] | One | 1 | active | 2026-04-26 |
+
+## Notes
+""",
+    )
+    write_page(
+        tmp_path / "content/entities/page_one.md",
+        """---
+tags:
+  - visibility/internal
+---
+""",
+    )
+
+    report = wiki_guard.gather_wiki_status(tmp_path)
+
+    assert report.total_wiki_pages == 1
+    assert report.visibility.internal == 1
+    assert report.visibility.total_pages == 1

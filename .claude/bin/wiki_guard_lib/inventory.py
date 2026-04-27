@@ -4,16 +4,17 @@ from datetime import date
 from pathlib import Path
 
 from .constants import INDEX_ROW_RE, INGEST_TIMESTAMP_RE, WIKILINK_RE
+from .knowledge_layout import detect_knowledge_layout
 from .utils import levenshtein_distance, parse_frontmatter, parse_iso_date
 
 
 def read_index_entries(repo_root: Path) -> dict[str, str]:
-    index_path = repo_root / "index.md"
-    if not index_path.exists():
+    layout = detect_knowledge_layout(repo_root)
+    if layout is None or not layout.index_path.exists():
         return {}
 
     entries: dict[str, str] = {}
-    for line in index_path.read_text(encoding="utf-8").splitlines():
+    for line in layout.index_path.read_text(encoding="utf-8").splitlines():
         match = INDEX_ROW_RE.match(line)
         if not match:
             continue
@@ -24,12 +25,17 @@ def read_index_entries(repo_root: Path) -> dict[str, str]:
 
 
 def build_page_inventory(repo_root: Path) -> dict[str, dict[str, object]]:
-    wiki_dir = repo_root / "wiki"
+    layout = detect_knowledge_layout(repo_root)
     pages: dict[str, dict[str, object]] = {}
-    if not wiki_dir.exists():
+    if layout is None or not layout.page_root.exists():
         return pages
 
-    for path in sorted(wiki_dir.rglob("*.md")):
+    root_special_files = {"index.md", "hot.md", "log.md"}
+
+    for path in sorted(layout.page_root.rglob("*.md")):
+        if path.parent == layout.page_root and path.name in root_special_files:
+            continue
+
         slug = path.stem
         text = path.read_text(encoding="utf-8")
         frontmatter = parse_frontmatter(text) or {}

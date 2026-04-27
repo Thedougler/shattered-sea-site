@@ -237,6 +237,12 @@ Use `wiki_guard` query mode to offload retrieval prep work that is expensive in 
 
 # Public-facing filter (exclude internal and pii-tagged pages)
 ./.claude/bin/wiki_guard --query-prep --query-question "User-facing summary of the maw" --query-public-only
+
+# Append Phase-5 query audit log entry automatically
+./.claude/bin/wiki_guard --query-prep --query-question "What is the relationship between the maw and leviathan?" --query-log
+
+# Mark broad-grep escalation and override result_pages when needed
+./.claude/bin/wiki_guard --query-prep --query-question "..." --query-log --query-result-pages 6 --query-escalated
 ```
 
 Useful options:
@@ -255,7 +261,9 @@ Separation of duties:
   - index/frontmatter scanning
   - candidate ranking
   - secondary link expansion
-  - targeted snippet extraction
+  - targeted snippet extraction (frontmatter stripped)
+  - source metadata extraction (`source_count`, `source_refs`)
+  - optional query audit log append (`--query-log`)
 - Claude Code should do synthesis work:
   - answer composition
   - caveat framing

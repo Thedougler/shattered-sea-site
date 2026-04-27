@@ -1,4 +1,5 @@
 ---
+name: lint
 description: >
   Health-check an LLM-wiki domain for structural and semantic decay. Detects orphan pages,
   dead wiki-links, index gaps, stale pages, unresolved contradictions, and high-frequency
@@ -25,6 +26,51 @@ $ARGUMENTS — one of:
 1. Confirm CLAUDE.md and index.md exist. If not, tell user to scaffold first.
 2. Read index.md in full — this is your map.
 3. Get the full file list in wiki/ using directory traversal.
+
+## Agent-Optimized Execution Path (Use First)
+
+Before doing any manual scans, run the deterministic tooling pass:
+
+```bash
+./.claude/bin/wiki_guard --lint-report --lint-format json
+```
+
+Default behavior is already agent-optimized:
+- Writes the full report to `.claude/tmp/lint_report.json`
+- Prints a concise summary to stdout
+- Caps noisy entity gap payloads for token efficiency
+
+Use an explicit path only when you need a non-default location:
+
+```bash
+./.claude/bin/wiki_guard --lint-report --lint-format json --lint-output-file .claude/tmp/custom_lint_report.json
+```
+
+If `$ARGUMENTS` specifies one category, run:
+
+```bash
+./.claude/bin/wiki_guard --lint-report --lint-category <category> --lint-format json
+```
+
+If `$ARGUMENTS` is `fix`, run:
+
+```bash
+./.claude/bin/wiki_guard --lint-report --lint-safe-fix --lint-format json
+```
+
+If `$ARGUMENTS` is `report`, run:
+
+```bash
+./.claude/bin/wiki_guard --lint-report --lint-format json
+```
+
+Why this path is required for agents:
+- The CLI does high-volume deterministic scanning faster and more reliably than token-limited manual traversal.
+- It enforces report-first boundaries and safe-fix constraints.
+- It prevents false-clean outcomes from path/layout mismatches by using layout detection.
+- It caps low-value gap payloads and can write reports to disk, which reduces context waste and truncation failures.
+
+Manual scanning is fallback only when `wiki_guard` is unavailable or reports a parsing/runtime failure.
 
 ---
 

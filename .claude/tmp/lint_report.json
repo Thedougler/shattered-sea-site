@@ -1,0 +1,584 @@
+{
+  "summary": {
+    "pages_audited": 66,
+    "index_entries": 60,
+    "ingestion_events": 3,
+    "critical": 20,
+    "structural": 6,
+    "opportunities": 45,
+    "total": 71,
+    "health_score": 61
+  },
+  "manual_required": {
+    "orphans": [
+      "campaign_timeline",
+      "class_universal_reference",
+      "condition_universal_profile",
+      "coralyra_dranra",
+      "monster_universal_inline",
+      "npc_universal_profile",
+      "rule_universal_reference",
+      "ship_universal_profile"
+    ],
+    "dead_links": [
+      "Captain-Name",
+      "FACTION_NAME",
+      "Faction-Or-Captain",
+      "LOCATION_NAME",
+      "PC_OR_THREAD_ANCHOR",
+      "Port-Or-Region",
+      "Port-Tidefall",
+      "Related-Page",
+      "Related-Rule-Or-Entity",
+      "Ship-Bastion",
+      "Ship-Mechanics",
+      "the_antheri_ruins\\"
+    ],
+    "contradictions": [],
+    "stale": [],
+    "index_ghosts": [],
+    "entity_gaps": [
+      "Maw",
+      "Scatter",
+      "Antheri",
+      "Pearl",
+      "Blue Shrine",
+      "Fisk",
+      "Saltwright",
+      "Shelfworks",
+      "Jean",
+      "Crisdalynn",
+      "Fleet",
+      "Midchain",
+      "Rattkin",
+      "Dravosi",
+      "Grung",
+      "Perrin",
+      "Strait",
+      "Admiral",
+      "Concordat",
+      "Crown",
+      "Dravosi Crown",
+      "Guide",
+      "High",
+      "Keth",
+      "NPC",
+      "Naar",
+      "Optional",
+      "Saltmarsh",
+      "She",
+      "Simone",
+      "Three",
+      "Tone",
+      "Aboard",
+      "Captain",
+      "Catarina",
+      "Crown Islands",
+      "High Eyrie",
+      "Layout",
+      "Passage",
+      "Rescued",
+      "Seven Houses",
+      "The Pearl",
+      "Warren",
+      "Water",
+      "Whether"
+    ]
+  },
+  "safe_auto_fixable": {
+    "index_wiki_ghosts": [
+      "class_universal_reference",
+      "condition_universal_profile",
+      "monster_universal_inline",
+      "npc_universal_profile",
+      "rule_universal_reference",
+      "ship_universal_profile"
+    ]
+  },
+  "orphans": [
+    {
+      "slug": "campaign_timeline",
+      "inbound_count": 0,
+      "suggested_links_from": [
+        "the_shattered_sea",
+        "the_antheri",
+        "auralis"
+      ]
+    },
+    {
+      "slug": "class_universal_reference",
+      "inbound_count": 0,
+      "suggested_links_from": [
+        "Related-Page"
+      ]
+    },
+    {
+      "slug": "condition_universal_profile",
+      "inbound_count": 0,
+      "suggested_links_from": []
+    },
+    {
+      "slug": "coralyra_dranra",
+      "inbound_count": 0,
+      "suggested_links_from": [
+        "the_shattered_sea",
+        "crisdalynn_khinriss",
+        "delmar_fisk"
+      ]
+    },
+    {
+      "slug": "monster_universal_inline",
+      "inbound_count": 0,
+      "suggested_links_from": []
+    },
+    {
+      "slug": "npc_universal_profile",
+      "inbound_count": 0,
+      "suggested_links_from": [
+        "PC_OR_THREAD_ANCHOR",
+        "FACTION_NAME",
+        "LOCATION_NAME"
+      ]
+    },
+    {
+      "slug": "rule_universal_reference",
+      "inbound_count": 0,
+      "suggested_links_from": [
+        "Related-Rule-Or-Entity"
+      ]
+    },
+    {
+      "slug": "ship_universal_profile",
+      "inbound_count": 0,
+      "suggested_links_from": [
+        "Captain-Name",
+        "Port-Tidefall",
+        "Faction-Or-Captain"
+      ]
+    }
+  ],
+  "dead_links": [
+    {
+      "target": "Captain-Name",
+      "source_pages": [
+        "ship_universal_profile"
+      ],
+      "count": 1,
+      "classification": "stub_worthy",
+      "likely_meant": null
+    },
+    {
+      "target": "FACTION_NAME",
+      "source_pages": [
+        "npc_universal_profile"
+      ],
+      "count": 2,
+      "classification": "stub_worthy",
+      "likely_meant": null
+    },
+    {
+      "target": "Faction-Or-Captain",
+      "source_pages": [
+        "ship_universal_profile"
+      ],
+      "count": 1,
+      "classification": "stub_worthy",
+      "likely_meant": null
+    },
+    {
+      "target": "LOCATION_NAME",
+      "source_pages": [
+        "npc_universal_profile"
+      ],
+      "count": 2,
+      "classification": "stub_worthy",
+      "likely_meant": null
+    },
+    {
+      "target": "PC_OR_THREAD_ANCHOR",
+      "source_pages": [
+        "npc_universal_profile"
+      ],
+      "count": 3,
+      "classification": "stub_worthy",
+      "likely_meant": null
+    },
+    {
+      "target": "Port-Or-Region",
+      "source_pages": [
+        "ship_universal_profile"
+      ],
+      "count": 1,
+      "classification": "stub_worthy",
+      "likely_meant": null
+    },
+    {
+      "target": "Port-Tidefall",
+      "source_pages": [
+        "ship_universal_profile"
+      ],
+      "count": 1,
+      "classification": "stub_worthy",
+      "likely_meant": null
+    },
+    {
+      "target": "Related-Page",
+      "source_pages": [
+        "class_universal_reference"
+      ],
+      "count": 1,
+      "classification": "stub_worthy",
+      "likely_meant": null
+    },
+    {
+      "target": "Related-Rule-Or-Entity",
+      "source_pages": [
+        "rule_universal_reference"
+      ],
+      "count": 1,
+      "classification": "stub_worthy",
+      "likely_meant": null
+    },
+    {
+      "target": "Ship-Bastion",
+      "source_pages": [
+        "ship_universal_profile"
+      ],
+      "count": 1,
+      "classification": "stub_worthy",
+      "likely_meant": null
+    },
+    {
+      "target": "Ship-Mechanics",
+      "source_pages": [
+        "ship_universal_profile"
+      ],
+      "count": 1,
+      "classification": "stub_worthy",
+      "likely_meant": null
+    },
+    {
+      "target": "the_antheri_ruins\\",
+      "source_pages": [
+        "campaign_timeline"
+      ],
+      "count": 1,
+      "classification": "typo_likely",
+      "likely_meant": "the_antheri_ruins"
+    }
+  ],
+  "index": {
+    "index_ghosts": [],
+    "wiki_ghosts": [
+      "class_universal_reference",
+      "condition_universal_profile",
+      "monster_universal_inline",
+      "npc_universal_profile",
+      "rule_universal_reference",
+      "ship_universal_profile"
+    ],
+    "empty_summaries": []
+  },
+  "stale": [],
+  "contradictions": [],
+  "gaps": [
+    {
+      "term": "Maw",
+      "mentions": 23,
+      "pages": [
+        "antheri_engineering",
+        "auralis",
+        "beaumont_sel",
+        "campaign_timeline",
+        "delmar_fisk"
+      ],
+      "priority": "high"
+    },
+    {
+      "term": "Scatter",
+      "mentions": 11,
+      "pages": [
+        "calveno",
+        "port_tidefall",
+        "the_antheri_ruins",
+        "the_central_strait",
+        "the_crown_islands"
+      ],
+      "priority": "high"
+    },
+    {
+      "term": "Antheri",
+      "mentions": 10,
+      "pages": [
+        "antheri_engineering",
+        "auralis",
+        "beaumont_sel",
+        "campaign_timeline",
+        "catarina_davirelli"
+      ],
+      "priority": "high"
+    },
+    {
+      "term": "Pearl",
+      "mentions": 9,
+      "pages": [
+        "belmore",
+        "campaign_timeline",
+        "crisdalynn_khinriss",
+        "fisks_fleet",
+        "pearl_of_souls"
+      ],
+      "priority": "high"
+    },
+    {
+      "term": "Blue Shrine",
+      "mentions": 8,
+      "pages": [
+        "campaign_timeline",
+        "delmar_fisk",
+        "fisks_fleet",
+        "pearl_of_souls",
+        "the_sunken_crown"
+      ],
+      "priority": "high"
+    },
+    {
+      "term": "Fisk",
+      "mentions": 8,
+      "pages": [
+        "campaign_timeline",
+        "crisdalynn_khinriss",
+        "delmar_fisk",
+        "fisks_fleet",
+        "perrin_black_jaw"
+      ],
+      "priority": "high"
+    },
+    {
+      "term": "Saltwright",
+      "mentions": 8,
+      "pages": [
+        "barnaby_rook",
+        "beaumont_sel",
+        "campaign_timeline",
+        "delmar_fisk",
+        "hcs_surety"
+      ],
+      "priority": "high"
+    },
+    {
+      "term": "Shelfworks",
+      "mentions": 8,
+      "pages": [
+        "antheri_engineering",
+        "campaign_timeline",
+        "catarina_davirelli",
+        "shelfworks_goldrush",
+        "the_antheri"
+      ],
+      "priority": "high"
+    },
+    {
+      "term": "Jean",
+      "mentions": 7,
+      "pages": [
+        "campaign_timeline",
+        "jean_claude_tabarnack",
+        "pell",
+        "simone_tabarnack",
+        "sorn"
+      ],
+      "priority": "medium"
+    },
+    {
+      "term": "Crisdalynn",
+      "mentions": 6,
+      "pages": [
+        "campaign_timeline",
+        "delmar_fisk",
+        "fisks_fleet",
+        "perrin_black_jaw",
+        "red_lady"
+      ],
+      "priority": "medium"
+    },
+    {
+      "term": "Fleet",
+      "mentions": 6,
+      "pages": [
+        "campaign_timeline",
+        "delmar_fisk",
+        "fisks_fleet",
+        "red_lady",
+        "the_sunken_crown"
+      ],
+      "priority": "medium"
+    },
+    {
+      "term": "Midchain",
+      "mentions": 6,
+      "pages": [
+        "calveno",
+        "campaign_timeline",
+        "jean_claude_tabarnack",
+        "kalowe",
+        "the_doldrums"
+      ],
+      "priority": "medium"
+    },
+    {
+      "term": "Rattkin",
+      "mentions": 6,
+      "pages": [
+        "calveno",
+        "campaign_timeline",
+        "the_crown_islands",
+        "the_passage",
+        "the_tessarine_concordat"
+      ],
+      "priority": "medium"
+    },
+    {
+      "term": "Dravosi",
+      "mentions": 5,
+      "pages": [
+        "calveno",
+        "port_tidefall",
+        "the_central_strait",
+        "the_dravosi_crown",
+        "the_verdant_scatter"
+      ],
+      "priority": "medium"
+    },
+    {
+      "term": "Grung",
+      "mentions": 5,
+      "pages": [
+        "kalowe",
+        "simone_tabarnack",
+        "sorn",
+        "the_midchain",
+        "the_verdant_teeth"
+      ],
+      "priority": "medium"
+    },
+    {
+      "term": "Perrin",
+      "mentions": 5,
+      "pages": [
+        "auralis",
+        "campaign_timeline",
+        "keth_naar",
+        "perrin_black_jaw",
+        "vestra"
+      ],
+      "priority": "medium"
+    },
+    {
+      "term": "Strait",
+      "mentions": 5,
+      "pages": [
+        "port_tidefall",
+        "the_central_strait",
+        "the_crown_islands",
+        "the_dravosi_crown",
+        "the_midchain"
+      ],
+      "priority": "medium"
+    },
+    {
+      "term": "Admiral",
+      "mentions": 4,
+      "pages": [
+        "campaign_timeline",
+        "delmar_fisk",
+        "fisks_fleet",
+        "pearl_of_souls"
+      ],
+      "priority": "low"
+    },
+    {
+      "term": "Concordat",
+      "mentions": 4,
+      "pages": [
+        "calveno",
+        "campaign_timeline",
+        "the_passage",
+        "the_tessarine_concordat"
+      ],
+      "priority": "low"
+    },
+    {
+      "term": "Crown",
+      "mentions": 4,
+      "pages": [
+        "sentinels_of_the_eyrie",
+        "the_crown_islands",
+        "the_drowned_maw",
+        "the_high_eyrie"
+      ],
+      "priority": "low"
+    },
+    {
+      "term": "Dravosi Crown",
+      "mentions": 4,
+      "pages": [
+        "campaign_timeline",
+        "the_dravosi_crown",
+        "the_passage",
+        "the_tessarine_concordat"
+      ],
+      "priority": "low"
+    },
+    {
+      "term": "Guide",
+      "mentions": 4,
+      "pages": [
+        "npc_construction_formula",
+        "scene_construction_rule",
+        "shattered_sea_tone_guide",
+        "the_shattered_sea"
+      ],
+      "priority": "low"
+    },
+    {
+      "term": "High",
+      "mentions": 4,
+      "pages": [
+        "rule_universal_reference",
+        "shattered_sea_tone_guide",
+        "the_tail",
+        "the_verdant_scatter"
+      ],
+      "priority": "low"
+    },
+    {
+      "term": "Keth",
+      "mentions": 4,
+      "pages": [
+        "belmore",
+        "keth_naar",
+        "perrin_black_jaw",
+        "the_sunken_crown"
+      ],
+      "priority": "low"
+    },
+    {
+      "term": "NPC",
+      "mentions": 4,
+      "pages": [
+        "npc_construction_formula",
+        "npc_universal_profile",
+        "scene_construction_rule",
+        "shattered_sea_tone_guide"
+      ],
+      "priority": "low"
+    }
+  ],
+  "gaps_meta": {
+    "returned": 25,
+    "total": 45,
+    "truncated": true,
+    "max_pages_per_gap": 5
+  }
+}

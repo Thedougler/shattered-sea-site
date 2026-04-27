@@ -5,6 +5,7 @@ from datetime import date, datetime
 from pathlib import Path
 
 from .constants import PROPER_NOUN_RE, STOP_TERMS
+from .constants import ENTITY_GAP_STOP_TERMS, GAP_NOISE_WORDS
 from .inventory import (
     build_page_inventory,
     classify_dead_link,
@@ -12,6 +13,7 @@ from .inventory import (
     read_index_entries,
     suggest_related_pages,
 )
+from .knowledge_layout import detect_knowledge_layout
 from .models import (
     ContradictionFinding,
     DeadLinkAggregate,
@@ -159,8 +161,19 @@ def _collect_entity_gaps(
     for slug, info in pages.items():
         body = strip_frontmatter(str(info["text"]))
         for term in PROPER_NOUN_RE.findall(body):
-            if term in STOP_TERMS:
+            if term in ENTITY_GAP_STOP_TERMS:
                 continue
+
+            tokens = term.split()
+            if not tokens:
+                continue
+            if len(tokens) == 1 and (tokens[0] in GAP_NOISE_WORDS or len(tokens[0]) <= 2):
+                continue
+            if all(token in ENTITY_GAP_STOP_TERMS for token in tokens):
+                continue
+            if all(token in ENTITY_GAP_STOP_TERMS or token in GAP_NOISE_WORDS for token in tokens):
+                continue
+
             normalized = term.replace(" ", "_").lower()
             if normalized in page_slugs:
                 continue
@@ -206,7 +219,8 @@ def gather_lint_results(repo_root: Path, *, today: date | None = None) -> LintRe
         empty_summaries=sorted(empty_summaries),
     )
 
-    log_path = repo_root / "log.md"
+    layout = detect_knowledge_layout(repo_root)
+    log_path = layout.log_path if layout is not None else (repo_root / "log.md")
     ingestion_dates = (
         collect_ingestion_dates(log_path.read_text(encoding="utf-8")) if log_path.exists() else []
     )
@@ -328,7 +342,13 @@ def build_lint_summary(results: LintResults) -> dict[str, int]:  # pragma: no co
     }
 
 
-def render_lint_report_text(results: LintResults, category: str) -> str:  # pragma: no cover
+def render_lint_report_text(
+    results: LintResults,
+    category: str,
+    *,
+    max_gaps: int = 25,
+    max_gap_pages: int = 5,
+) -> str:  # pragma: no cover
     summary = build_lint_summary(results)
     generated = datetime.now().strftime("%Y-%m-%d %H:%M")
     lines = [
@@ -402,9 +422,12 @@ def render_lint_report_text(results: LintResults, category: str) -> str:  # prag
         lines.append("")
 
     if include("gaps"):
-        lines.append(f"Entity Gaps ({len(results.gaps)})")
-        for gap in results.gaps[:10]:
-            pages = ", ".join(f"[[{s}]]" for s in gap.pages[:5])
+        gap_limit = max(0, max_gaps)
+        page_limit = max(1, max_gap_pages)
+        shown = results.gaps[:gap_limit] if gap_limit > 0 else []
+        lines.append(f"Entity Gaps ({len(shown)} shown of {len(results.gaps)})")
+        for gap in shown:
+            pages = ", ".join(f"[[{s}]]" for s in gap.pages[:page_limit])
             lines.append(
                 f'- "{gap.term}" mentions={gap.mentions} priority={gap.priority}; pages={pages}'
             )
@@ -423,7 +446,13 @@ def render_lint_report_text(results: LintResults, category: str) -> str:  # prag
     return "\n".join(lines)
 
 
-def render_lint_report_json(results: LintResults, category: str) -> str:  # pragma: no cover
+def render_lint_report_json(
+    results: LintResults,
+    category: str,
+    *,
+    max_gaps: int = 25,
+    max_gap_pages: int = 5,
+) -> str:  # pragma: no cover
     summary = build_lint_summary(results)
 
     def include(name: str) -> bool:
@@ -497,23 +526,50 @@ def render_lint_report_json(results: LintResults, category: str) -> str:  # prag
             for item in results.contradictions
         ]
     if include("gaps"):
+        gap_limit = max(0, max_gaps)
+        page_limit = max(1, max_gap_pages)
+        shown = results.gaps[:gap_limit] if gap_limit > 0 else []
         payload["gaps"] = [
             {
                 "term": item.term,
                 "mentions": item.mentions,
-                "pages": item.pages,
+                "pages": item.pages[:page_limit],
                 "priority": item.priority,
             }
-            for item in results.gaps
+            for item in shown
         ]
+        payload["gaps_meta"] = {
+            "returned": len(shown),
+            "total": len(results.gaps),
+            "truncated": len(shown) < len(results.gaps),
+            "max_pages_per_gap": page_limit,
+        }
 
     return json.dumps(payload, indent=2)
 
 
 def print_lint_report(
-    results: LintResults, *, category: str, output_format: str
-) -> None:  # pragma: no cover
+    results: LintResults,
+    *,
+    category: str,
+    output_format: str,
+    max_gaps: int = 25,
+    max_gap_pages: int = 5,
+) -> str:  # pragma: no cover
     if output_format in {"text", "markdown"}:
-        print(render_lint_report_text(results, category))
-        return
-    print(render_lint_report_json(results, category))
+        report = render_lint_report_text(
+            results,
+            category,
+            max_gaps=max_gaps,
+            max_gap_pages=max_gap_pages,
+        )
+        print(report)
+        return report
+    report = render_lint_report_json(
+        results,
+        category,
+        max_gaps=max_gaps,
+        max_gap_pages=max_gap_pages,
+    )
+    print(report)
+    return report

@@ -95,6 +95,8 @@ class QueryPrepCandidate:
     score: int
     match_reasons: list[str]
     summary: str
+    source_count: int
+    source_refs: list[str]
     status: str
     visibility: str
     tags: list[str]

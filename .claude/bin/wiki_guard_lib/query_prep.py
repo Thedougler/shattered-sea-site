@@ -3,11 +3,14 @@ from __future__ import annotations
 import json
 import re
 from collections import Counter
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, cast
 
 from .inventory import build_page_inventory, read_index_entries
+from .knowledge_layout import detect_knowledge_layout
 from .models import QueryPrepCandidate, QueryPrepResult
+from .utils import strip_frontmatter
 
 _TOKEN_RE = re.compile(r"[a-z0-9_]+")
 _STOPWORDS = {
@@ -54,6 +57,21 @@ def _normalize_list(values: object) -> list[str]:
     return out
 
 
+def _normalize_source_count(value: object) -> int:
+    if isinstance(value, int):
+        return max(0, value)
+    if isinstance(value, str):
+        trimmed = value.strip()
+        if trimmed.isdigit():
+            return int(trimmed)
+    return 0
+
+
+def _normalize_source_refs(values: object) -> list[str]:
+    refs = _normalize_list(values)
+    return refs[:8]
+
+
 def _detect_query_type(question: str) -> str:
     lowered = question.lower()
     if any(term in lowered for term in ("compare", "versus", "vs", "difference")):
@@ -71,7 +89,7 @@ def _extract_snippets(body: str, terms: list[str], *, context: int, max_snippets
     if not terms:
         return []
 
-    lines = body.splitlines()
+    lines = strip_frontmatter(body).splitlines()
     matched_indices: list[int] = []
     lowered_terms = [term.lower() for term in terms]
     for idx, line in enumerate(lines):
@@ -193,6 +211,9 @@ def _build_candidate(
     if score <= 0:
         return None
 
+    source_count = _normalize_source_count(frontmatter.get("source_count"))
+    source_refs = _normalize_source_refs(frontmatter.get("sources"))
+
     status_raw = frontmatter.get("status")
     status = status_raw.strip() if isinstance(status_raw, str) else "unknown"
     visibility_raw = frontmatter.get("visibility")
@@ -226,6 +247,8 @@ def _build_candidate(
         score=score,
         match_reasons=reasons,
         summary=summary or index_summary,
+        source_count=source_count,
+        source_refs=source_refs,
         status=status,
         visibility=visibility,
         tags=tags,
@@ -328,6 +351,8 @@ def render_query_prep_json(result: QueryPrepResult) -> str:
                 "score": candidate.score,
                 "match_reasons": candidate.match_reasons,
                 "summary": candidate.summary,
+                "source_count": candidate.source_count,
+                "source_refs": candidate.source_refs,
                 "status": candidate.status,
                 "visibility": candidate.visibility,
                 "tags": candidate.tags,
@@ -344,6 +369,8 @@ def render_query_prep_json(result: QueryPrepResult) -> str:
                 "score": candidate.score,
                 "match_reasons": candidate.match_reasons,
                 "summary": candidate.summary,
+                "source_count": candidate.source_count,
+                "source_refs": candidate.source_refs,
                 "status": candidate.status,
                 "visibility": candidate.visibility,
                 "tags": candidate.tags,
@@ -377,6 +404,10 @@ def render_query_prep_text(result: QueryPrepResult) -> str:
         )
         if item.summary:
             lines.append(f"  summary: {item.summary}")
+        if item.source_count > 0:
+            lines.append(f"  source_count: {item.source_count}")
+        if item.source_refs:
+            lines.append(f"  sources: {', '.join(item.source_refs)}")
         for snippet in item.snippets:
             lines.append("  snippet:")
             for snippet_line in snippet.splitlines():
@@ -400,3 +431,41 @@ def print_query_prep(result: QueryPrepResult, output_format: str) -> None:
         print(render_query_prep_json(result))
         return
     print(render_query_prep_text(result))
+
+
+def normalize_query_log_mode(mode: str) -> str:
+    if mode.startswith("filtered"):
+        return "filtered"
+    if mode == "index_only":
+        return "index_only"
+    return "normal"
+
+
+def append_query_log(
+    repo_root: Path,
+    *,
+    question: str,
+    result_pages: int,
+    mode: str,
+    escalated: bool,
+) -> Path | None:
+    layout = detect_knowledge_layout(repo_root)
+    if layout is None:
+        return None
+
+    log_path = layout.log_path
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    if not log_path.exists():
+        log_path.write_text("", encoding="utf-8")
+
+    timestamp = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    normalized_mode = normalize_query_log_mode(mode)
+    escaped_question = question.replace('"', "\\\"")
+    line = (
+        f'- [{timestamp}] QUERY query="{escaped_question}" '
+        f"result_pages={max(0, result_pages)} mode={normalized_mode} "
+        f"escalated={'true' if escalated else 'false'}"
+    )
+    with log_path.open("a", encoding="utf-8") as handle:
+        handle.write(line + "\n")
+    return log_path

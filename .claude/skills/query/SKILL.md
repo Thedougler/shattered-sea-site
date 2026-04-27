@@ -30,11 +30,28 @@ $ARGUMENTS — the user's question or query. Examples:
 
 ## Pre-Flight
 
-1. Confirm CLAUDE.md and index.md exist. If not, tell user to run `/llm-wiki:scaffold`.
-2. If the wiki appears empty (no rows in index.md catalog), inform user to ingest sources first.
-3. If `hot.md` exists at the wiki root, read it before index.md. It contains a ~500-word semantic
-   snapshot of recent activity — if the question is about something ingested recently, hot.md may
-   answer it without opening index.md at all. Skip to Phase 4 synthesis if it does.
+1. Confirm `CLAUDE.md` exists and a knowledge layout exists (`content/` or `wiki/`).
+2. Resolve layout paths before reading anything: `index_path`, `hot_path`, `log_path`.
+3. If no knowledge index exists, tell user to run `/llm-wiki:scaffold`.
+4. If index appears empty (no catalog rows), inform user to ingest sources first.
+5. Read `hot_path` before `index_path` when present; if hot already answers the question, skip to synthesis.
+
+### Tool-First Fast Path (default)
+
+Prefer one deterministic prep command over manual grep chains:
+
+```bash
+./.claude/bin/wiki_guard --query-prep --query-question "<question>" --query-format json
+```
+
+Add flags when needed:
+
+- fast/index-only mode: `--query-fast`
+- visibility filter: `--query-public-only`
+- wider candidate set: `--query-top-k 8`
+- richer snippets: `--query-snippet-context 3 --query-max-snippets 3`
+
+Use manual index/frontmatter grep only if `wiki_guard` is unavailable or fails.
 
 ---
 
@@ -69,9 +86,13 @@ Parse the question to determine:
 
 ### Phase 2 — Index-Driven Navigation
 
-Read index.md. Build a candidate set *without opening any page bodies*:
+Use `wiki_guard --query-prep` output as the canonical candidate set. It already does index/frontmatter
+ranking, link expansion, and snippet extraction without opening pages in the agent context.
 
-1. Use index.md as the first filter — it lists every page with a one-line description and tags.
+If fallback is required (tool unavailable), read index and build candidates manually without loading
+full page bodies:
+
+1. Use `index_path` as the first filter — it lists every page with a one-line description and tags.
 2. Use `Grep` to scan page **frontmatter only** for title, tag, alias, and summary matches.
    The pattern `^(title|tags|aliases|summary):` scoped to vault `.md` files is far cheaper
    than a content grep.
@@ -147,10 +168,10 @@ using the cheapest primitive at each step.
 
 As you read:
 - Extract the specific claims relevant to the query
-- Note the source_count (epistemic weight) of each page
+- Note the source_count (epistemic weight) of each page (from frontmatter or query-prep payload)
 - Note the status — if `contradictory`, surface that in your answer
 - Note provenance markers: `^[inferred]` claims are synthesized, `^[ambiguous]` claims are contested
-- Track which raw/ sources support each claim (from the ## Sources section)
+- Track which raw/ sources support each claim (`source_refs` from query-prep payload, then `## Sources` body)
 - **Track the retrieval tier** that answered each claim: `summary` / `grep` / `full-read` — include
   this in the Sources section so the user can gauge confidence
 
@@ -199,7 +220,20 @@ boundaries are the answer's epistemic boundaries.
 
 ### Phase 5 — Query Logging
 
-Append to `log.md` after every query (including index-only and filtered modes):
+Log every query via `wiki_guard` instead of manual file appends:
+
+```bash
+./.claude/bin/wiki_guard --query-prep --query-question "<question>" --query-format json --query-log
+```
+
+Set explicit flags when needed:
+
+- override count: `--query-result-pages <N>`
+- broad-grep fallback used: `--query-escalated`
+
+The tool writes to the detected layout log path (`content/log.md` or `wiki/log.md`) and normalizes mode.
+
+Expected log line format:
 
 ```
 - [<YYYY-MM-DDThh:mm:ssZ>] QUERY query="<the user's question>" result_pages=<N> mode=<normal|index_only|filtered> escalated=<true|false>

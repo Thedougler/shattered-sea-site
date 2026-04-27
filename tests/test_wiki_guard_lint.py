@@ -226,9 +226,13 @@ No inbound links.
 
     code = wiki_guard.main()
     out = capsys.readouterr().out
-    payload = json.loads(out)
+    report_path = tmp_path / ".claude/tmp/lint_report.json"
+    payload = json.loads(report_path.read_text(encoding="utf-8"))
 
     assert code == 0
+    assert report_path.exists()
+    assert "lint report written to .claude/tmp/lint_report.json" in out
+    assert "summary: critical=" in out
     assert "manual_required" in payload
     assert "safe_auto_fixable" in payload
     assert payload["safe_auto_fixable"]["index_wiki_ghosts"] == ["manual_page"]
@@ -411,6 +415,123 @@ def test_render_lint_report_text_and_json_category_filters(wiki_guard) -> None:
     assert "index" not in payload
     assert payload["manual_required"]["orphans"] == ["alpha"]
 
+    gaps_json = wiki_guard.render_lint_report_json(
+        results,
+        "gaps",
+        max_gaps=1,
+        max_gap_pages=2,
+    )
+    gaps_payload = json.loads(gaps_json)
+    assert len(gaps_payload["gaps"]) == 1
+    assert len(gaps_payload["gaps"][0]["pages"]) == 2
+    assert gaps_payload["gaps_meta"]["truncated"] is False
+
+
+def test_lint_report_output_file_writes_full_report(
+    tmp_path: Path, monkeypatch, capsys, wiki_guard
+) -> None:
+    write_required_root(tmp_path)
+    (tmp_path / "index.md").write_text(
+        """# Index: shattered_sea
+
+## Entity Catalog
+
+| Entity | Summary | Sources | Status | Updated |
+|--------|---------|---------|--------|---------|
+
+## Notes
+""",
+        encoding="utf-8",
+    )
+    write_page(
+        tmp_path / "wiki/entities/manual_page.md",
+        """---
+domain: shattered_sea
+type: entity
+summary: Manual page
+source_count: 1
+status: active
+visibility: private
+tags: []
+related: []
+created: 2026-04-26
+updated: 2026-04-26
+---
+
+## Overview
+No inbound links.
+""",
+    )
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "wiki_guard.py",
+            "--repo-root",
+            str(tmp_path),
+            "--lint-report",
+            "--lint-format",
+            "json",
+            "--lint-output-file",
+            "tmp/lint-report.json",
+        ],
+    )
+
+    code = wiki_guard.main()
+    out = capsys.readouterr().out
+    report_path = tmp_path / "tmp/lint-report.json"
+
+    assert code == 0
+    assert report_path.exists()
+    payload = json.loads(report_path.read_text(encoding="utf-8"))
+    assert payload["summary"]["pages_audited"] == 1
+    assert "lint report written to tmp/lint-report.json" in out
+
+
+def test_entity_gap_detection_filters_noise_terms(tmp_path: Path, wiki_guard) -> None:
+    write_required_root(tmp_path)
+    (tmp_path / "index.md").write_text(
+        """# Index: shattered_sea
+
+## Entity Catalog
+
+| Entity | Summary | Sources | Status | Updated |
+|--------|---------|---------|--------|---------|
+| [[alpha]] | Alpha summary | 1 | active | 2026-04-26 |
+| [[beta]] | Beta summary | 1 | active | 2026-04-26 |
+| [[gamma]] | Gamma summary | 1 | active | 2026-04-26 |
+
+## Notes
+""",
+        encoding="utf-8",
+    )
+    for slug in ("alpha", "beta", "gamma"):
+        write_page(
+            tmp_path / f"wiki/entities/{slug}.md",
+            """---
+summary: Test
+source_count: 1
+status: active
+updated: 2026-04-26
+---
+
+## Overview
+Campaign Timeline Day Sea Shattered.
+Azure Crown appears in every page.
+""",
+        )
+
+    results = wiki_guard.gather_lint_results(tmp_path, today=date(2026, 4, 26))
+    terms = {item.term for item in results.gaps}
+
+    assert "Azure Crown" in terms
+    assert "Campaign" not in terms
+    assert "Timeline" not in terms
+    assert "Day" not in terms
+    assert "Sea" not in terms
+    assert "Shattered" not in terms
+
 
 def test_update_index_with_wiki_ghosts_is_idempotent(tmp_path: Path, wiki_guard) -> None:
     write_required_root(tmp_path)
@@ -454,3 +575,39 @@ def test_update_index_with_wiki_ghosts_is_idempotent(tmp_path: Path, wiki_guard)
     assert added_second == 0
     index_text = (tmp_path / "index.md").read_text(encoding="utf-8")
     assert "| [[ghost]] | Has / pipe | 1 | active | 2026-04-26 |" in index_text
+
+
+def test_gather_lint_results_supports_content_layout(tmp_path: Path, wiki_guard) -> None:
+    write_page(
+        tmp_path / "content/index.md",
+        """# Index: shattered_sea
+
+## Entity Catalog
+
+| Entity | Summary | Sources | Status | Updated |
+|--------|---------|---------|--------|---------|
+| [[known_page]] | Known summary | 1 | active | 2026-04-26 |
+
+## Notes
+""",
+    )
+    write_page(tmp_path / "content/log.md", "# Log\n")
+    write_page(
+        tmp_path / "content/entities/known_page.md",
+        """---
+summary: Known summary
+source_count: 1
+status: active
+updated: 2026-04-26
+---
+
+## Overview
+Linked nowhere.
+""",
+    )
+
+    results = wiki_guard.gather_lint_results(tmp_path, today=date(2026, 4, 26))
+
+    assert results.pages_audited == 1
+    assert results.index_entries == 1
+    assert results.orphans[0].slug == "known_page"

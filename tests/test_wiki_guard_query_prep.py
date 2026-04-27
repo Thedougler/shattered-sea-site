@@ -434,6 +434,8 @@ def test_build_candidate_handles_malformed_info_and_mixed_links(wiki_guard) -> N
     assert mixed_links_candidate is not None
     assert mixed_links_candidate.status == "active"
     assert mixed_links_candidate.visibility == "public"
+    assert mixed_links_candidate.source_count == 0
+    assert mixed_links_candidate.source_refs == []
     assert mixed_links_candidate.outbound_links == ["gamma_entry", "delta_entry"]
     assert mixed_links_candidate.snippets == []
 
@@ -556,6 +558,8 @@ Internal Alpha note.
                 score=10,
                 match_reasons=[],
                 summary="",
+                source_count=0,
+                source_refs=[],
                 status="active",
                 visibility="private",
                 tags=[],
@@ -571,6 +575,8 @@ Internal Alpha note.
                 score=4,
                 match_reasons=["summary:alpha"],
                 summary="Beta summary",
+                source_count=0,
+                source_refs=[],
                 status="draft",
                 visibility="public",
                 tags=[],
@@ -586,3 +592,144 @@ Internal Alpha note.
     assert "via=none" in text_report
     assert "- [[beta_page]] score=4" in text_report
     assert "  summary:" not in text_report
+
+
+def test_gather_query_prep_extracts_source_metadata_and_skips_frontmatter_snippets(
+    tmp_path: Path, wiki_guard
+) -> None:
+    write_required_root(tmp_path)
+    (tmp_path / "index.md").write_text(
+        """# Index: shattered_sea
+
+## Entity Catalog
+
+| Entity | Summary | Sources | Status | Updated |
+|--------|---------|---------|--------|---------|
+| [[storm_anchor]] | Anchor in the drowned maw | 2 | active | 2026-04-26 |
+
+## Notes
+""",
+        encoding="utf-8",
+    )
+    write_page(
+        tmp_path / "wiki/entities/storm_anchor.md",
+        """---
+domain: shattered_sea
+type: concept
+summary: Anchor in the drowned maw
+source_count: "2"
+status: active
+visibility: private
+tags:
+  - drowned_maw
+sources:
+  - "[[Campaign-Timeline]]"
+  - "[[The-Shattered-Sea]]"
+related: []
+created: 2026-04-26
+updated: 2026-04-26
+---
+
+## Overview
+
+This anchor stabilizes the drowned maw currents.
+""",
+    )
+
+    result = wiki_guard.gather_query_prep(
+        tmp_path,
+        question="What anchors the drowned maw?",
+        top_k=1,
+        fast_mode=False,
+        snippet_context=1,
+        max_snippets=1,
+    )
+
+    assert result.primary
+    candidate = result.primary[0]
+    assert candidate.source_count == 2
+    assert candidate.source_refs == ["[[Campaign-Timeline]]", "[[The-Shattered-Sea]]"]
+    assert all("domain: shattered_sea" not in snippet for snippet in candidate.snippets)
+
+
+def test_main_query_prep_with_query_log_appends_line(tmp_path: Path, monkeypatch, wiki_guard) -> None:
+    content_root = tmp_path / "content"
+    content_root.mkdir(parents=True, exist_ok=True)
+    write_page(content_root / "index.md", """# Index: shattered_sea
+
+## Entity Catalog
+
+| Entity | Summary | Sources | Status | Updated |
+|--------|---------|---------|--------|---------|
+| [[storm_anchor]] | Anchor in the drowned maw | 2 | active | 2026-04-26 |
+
+## Notes
+""")
+    write_page(content_root / "hot.md", "hot\n")
+    write_page(content_root / "log.md", "")
+    write_page(
+        content_root / "entities/storm_anchor.md",
+        """---
+domain: shattered_sea
+type: concept
+summary: Anchor in the drowned maw
+source_count: 2
+status: active
+visibility: private
+tags:
+  - drowned_maw
+related: []
+created: 2026-04-26
+updated: 2026-04-26
+---
+
+## Overview
+
+Storm anchor note.
+""",
+    )
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "wiki_guard.py",
+            "--repo-root",
+            str(tmp_path),
+            "--query-prep",
+            "--query-question",
+            "Quick answer: storm anchor",
+            "--query-fast",
+            "--query-log",
+            "--query-result-pages",
+            "2",
+            "--query-escalated",
+        ],
+    )
+
+    code = wiki_guard.main()
+    log_text = (content_root / "log.md").read_text(encoding="utf-8")
+
+    assert code == 0
+    assert " QUERY " in log_text
+    assert 'query="Quick answer: storm anchor"' in log_text
+    assert "result_pages=2" in log_text
+    assert "mode=index_only" in log_text
+    assert "escalated=true" in log_text
+
+
+def test_main_query_log_requires_query_prep(tmp_path: Path, monkeypatch, wiki_guard) -> None:
+    write_required_root(tmp_path)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "wiki_guard.py",
+            "--repo-root",
+            str(tmp_path),
+            "--query-log",
+        ],
+    )
+
+    with pytest.raises(SystemExit):
+        wiki_guard.main()
