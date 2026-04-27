@@ -3,8 +3,10 @@ from __future__ import annotations
 import argparse
 import io
 import json
+import sys
 from contextlib import redirect_stdout
 from pathlib import Path
+from typing import Any, cast
 
 from .ingest_prep import (
     build_ingest_batch,
@@ -28,6 +30,7 @@ from .linting import (
     render_lint_report_text,
 )
 from .query_prep import (
+    append_filed_log,
     append_query_log,
     gather_query_prep,
     print_query_prep,
@@ -71,6 +74,15 @@ def _validate_args(parser: argparse.ArgumentParser, args: argparse.Namespace) ->
 
     if args.query_result_pages < 0:
         parser.error("--query-result-pages must be >= 0")
+
+    if args.query_merge_qmd and not args.query_prep:
+        parser.error("--query-merge-qmd requires --query-prep")
+
+    if args.query_filed:
+        if not args.query_filed_page.strip():
+            parser.error("--query-filed requires --query-filed-page")
+        if not args.query_filed_from_query.strip():
+            parser.error("--query-filed requires --query-filed-from-query")
 
     if args.status_output_file and not args.status_report:
         parser.error("--status-output-file requires --status-report")
@@ -284,6 +296,25 @@ def _run_status(args: argparse.Namespace, repo_root: Path) -> int:
 
 
 def _run_query(args: argparse.Namespace, repo_root: Path) -> int:
+    # Load QMD results from file if provided
+    qmd_data: list[dict[str, Any]] | None = None
+    if args.query_merge_qmd.strip():
+        qmd_path = Path(args.query_merge_qmd)
+        if not qmd_path.is_absolute():
+            qmd_path = repo_root / qmd_path
+        if not qmd_path.exists():
+            print(f"error: --query-merge-qmd file not found: {qmd_path}", file=sys.stderr)
+            return 1
+        try:
+            raw = json.loads(qmd_path.read_text(encoding="utf-8"))
+            if not isinstance(raw, list):
+                print("error: --query-merge-qmd file must contain a JSON array", file=sys.stderr)
+                return 1
+            qmd_data = cast(list[dict[str, Any]], raw)
+        except (json.JSONDecodeError, OSError) as exc:
+            print(f"error: failed to read --query-merge-qmd file: {exc}", file=sys.stderr)
+            return 1
+
     query_result = gather_query_prep(
         repo_root,
         question=args.query_question,
@@ -292,6 +323,7 @@ def _run_query(args: argparse.Namespace, repo_root: Path) -> int:
         public_only=args.query_public_only,
         snippet_context=max(0, args.query_snippet_context),
         max_snippets=max(1, args.query_max_snippets),
+        qmd_data=qmd_data,
     )
     if args.query_output_file:
         rendered = (
@@ -306,6 +338,7 @@ def _run_query(args: argparse.Namespace, repo_root: Path) -> int:
             "summary: "
             f"type={query_result.query_type} "
             f"mode={query_result.mode} "
+            f"qmd_merged={'yes' if query_result.qmd_merged else 'no'} "
             f"primary={len(query_result.primary)} "
             f"secondary={len(query_result.secondary)} "
             f"excluded_internal={query_result.excluded_internal_count}"
@@ -323,6 +356,19 @@ def _run_query(args: argparse.Namespace, repo_root: Path) -> int:
             mode=query_result.mode,
             escalated=args.query_escalated,
         )
+    return 0
+
+
+def _run_query_filed(args: argparse.Namespace, repo_root: Path) -> int:
+    log_path = append_filed_log(
+        repo_root,
+        page=args.query_filed_page.strip(),
+        from_query=args.query_filed_from_query.strip(),
+    )
+    if log_path is None:
+        print("error: could not detect knowledge layout — no log path found", file=sys.stderr)
+        return 1
+    print(f"filed: {args.query_filed_page} → {log_path.relative_to(repo_root)}")
     return 0
 
 
@@ -872,6 +918,36 @@ def main() -> int:
         help="With --query-log, mark escalated=true for broad-vault fallback runs",
     )
     parser.add_argument(
+        "--query-merge-qmd",
+        default="",
+        metavar="JSON_FILE",
+        help=(
+            "With --query-prep, path to a JSON file containing QMD semantic search results "
+            "(list of {rel_path, score, snippet?} objects). Results are merged into the "
+            "candidate ranking: existing candidates get a score boost, new candidates are added. "
+            "Sets qmd_merged=true in the output."
+        ),
+    )
+    parser.add_argument(
+        "--query-filed",
+        action="store_true",
+        help=(
+            "Append a FILED log entry for a synthesis page written back to the wiki. "
+            "Requires --query-filed-page and --query-filed-from-query. "
+            "Does not require --query-prep."
+        ),
+    )
+    parser.add_argument(
+        "--query-filed-page",
+        default="",
+        help="With --query-filed, the relative path of the synthesis page that was filed.",
+    )
+    parser.add_argument(
+        "--query-filed-from-query",
+        default="",
+        help="With --query-filed, the original query that generated the synthesis.",
+    )
+    parser.add_argument(
         "--synthesize-report",
         action="store_true",
         help=(
@@ -938,6 +1014,9 @@ def main() -> int:
 
     if args.query_prep:
         return _run_query(args, repo_root)
+
+    if args.query_filed:
+        return _run_query_filed(args, repo_root)
 
     if args.lint_report:
         return _run_lint(args, repo_root)

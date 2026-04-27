@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -103,6 +103,11 @@ class QueryPrepCandidate:
     aliases: list[str]
     outbound_links: list[str]
     snippets: list[str]
+    # QMD-augmented fields (populated when --query-merge-qmd is used)
+    qmd_score: float = 0.0
+    qmd_snippets: list[str] = field(default_factory=list)
+    # Read strategy recommendation: "summary_only" | "grep" | "full_read"
+    read_strategy: str = "full_read"
 
 
 @dataclass
@@ -115,6 +120,7 @@ class QueryPrepResult:
     primary: list[QueryPrepCandidate]
     secondary: list[QueryPrepCandidate]
     excluded_internal_count: int
+    qmd_merged: bool = False
 
 
 @dataclass

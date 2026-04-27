@@ -65,8 +65,10 @@ from .models import (
     WikiStatusReport,
 )
 from .query_prep import (
+    append_filed_log,
     append_query_log,
     gather_query_prep,
+    merge_qmd_results,
     normalize_query_log_mode,
     print_query_prep,
     render_query_prep_json,
@@ -152,8 +154,10 @@ __all__ = [
     "print_ingest_runner",
     "finalize_ingest",
     "finalize_runner_dir",
+    "append_filed_log",
     "append_query_log",
     "gather_query_prep",
+    "merge_qmd_results",
     "normalize_query_log_mode",
     "render_query_prep_text",
     "render_query_prep_json",
