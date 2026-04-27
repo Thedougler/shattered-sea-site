@@ -468,6 +468,35 @@ def render_lint_report_json(
     def include(name: str) -> bool:
         return category == "all" or category == name
 
+    has_safe_fixes = bool(results.index.wiki_ghosts)
+    has_manual = bool(
+        results.orphans
+        or results.dead_links
+        or results.contradictions
+        or results.stale
+        or results.index.index_ghosts
+    )
+    if not has_safe_fixes and not has_manual:
+        next_action = "clean"
+    elif has_safe_fixes and not has_manual:
+        next_action = "safe_fix_available"
+    else:
+        next_action = "manual_review_required"
+
+    typo_count = sum(1 for dl in results.dead_links if dl.classification == "typo_likely")
+    category_counts: dict[str, int] = {
+        "orphans": len(results.orphans),
+        "dead_links": len(results.dead_links),
+        "dead_links_typo_likely": typo_count,
+        "dead_links_stub_worthy": len(results.dead_links) - typo_count,
+        "contradictions": len(results.contradictions),
+        "stale": len(results.stale),
+        "index_ghosts": len(results.index.index_ghosts),
+        "wiki_ghosts": len(results.index.wiki_ghosts),
+        "empty_summaries": len(results.index.empty_summaries),
+        "gaps": len(results.gaps),
+    }
+
     payload: dict[str, object] = {
         "summary": {
             "pages_audited": results.pages_audited,
@@ -475,9 +504,18 @@ def render_lint_report_json(
             "ingestion_events": results.ingestion_events,
             **summary,
         },
+        "next_action": next_action,
+        "category_counts": category_counts,
         "manual_required": {
             "orphans": [item.slug for item in results.orphans],
-            "dead_links": [item.target for item in results.dead_links],
+            "dead_links": [
+                {
+                    "target": item.target,
+                    "classification": item.classification,
+                    "likely_meant": item.likely_meant,
+                }
+                for item in results.dead_links
+            ],
             "contradictions": [item.slug for item in results.contradictions],
             "stale": [item.slug for item in results.stale],
             "index_ghosts": results.index.index_ghosts,

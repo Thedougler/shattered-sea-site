@@ -360,6 +360,22 @@ def _run_lint(args: argparse.Namespace, repo_root: Path) -> int:
         f"opportunities={summary['opportunities']} "
         f"health={summary['health_score']}%"
     )
+    typo_count = sum(1 for dl in results.dead_links if dl.classification == "typo_likely")
+    stub_count = len(results.dead_links) - typo_count
+    print(
+        f"orphans={len(results.orphans)} "
+        f"dead_links={len(results.dead_links)}(typo={typo_count},stub={stub_count}) "
+        f"contradictions={len(results.contradictions)}"
+    )
+    print(
+        f"stale={len(results.stale)} "
+        f"index_ghosts={len(results.index.index_ghosts)} "
+        f"wiki_ghosts={len(results.index.wiki_ghosts)} "
+        f"gaps={len(results.gaps)}"
+    )
+    wiki_ghost_count = len(results.index.wiki_ghosts)
+    if wiki_ghost_count > 0:
+        print(f"safe_auto_fixable: {wiki_ghost_count} wiki_ghost(s) → re-run with --lint-safe-fix to add to index")
 
     if args.lint_safe_fix:
         applied = apply_safe_lint_fixes(repo_root, results)
