@@ -50,6 +50,15 @@ Read the generated JSON file before continuing. Treat this packet as canonical f
 - Manifest/hash ingest status (`new`, `changed`, `unchanged`)
 - Existing vs unresolved wikilinks already present in the source
 
+3. After page edits are complete, finalize bookkeeping through one deterministic command:
+
+```bash
+./.claude/bin/wiki_guard --ingest-finalize --ingest-finalize-file .claude/tmp/ingest_finalize.json
+```
+
+This updates `.manifest.json`, the detected knowledge `log.md`, and `hot.md` in one layout-aware pass.
+Do not hand-edit those three files when the helper is available.
+
 Manual hashing and path heuristics are fallback only when `wiki_guard` is unavailable or fails.
 
 ## Pre-Flight Checks
@@ -318,6 +327,36 @@ After all entity pages are written or updated:
 ---
 
 ### Phase 6 — Record Keeping
+
+Default path for agents: write `.claude/tmp/ingest_finalize.json` and run
+`./.claude/bin/wiki_guard --ingest-finalize --ingest-finalize-file .claude/tmp/ingest_finalize.json`.
+
+Recommended payload shape:
+
+```json
+{
+  "source_path": "raw/<filename>",
+  "source_type": "document",
+  "content_hash": "sha256:<64-char-hex>",
+  "project": null,
+  "pages_created": ["content/path/to/page.md"],
+  "pages_updated": ["content/path/to/page.md"],
+  "links_woven": 4,
+  "contradictions": ["[[entity]] — brief conflict summary"],
+  "log_details": [
+    "UPDATED [[entity_1]] — <what changed>",
+    "CREATED [[entity_2]] — <one-line description>"
+  ],
+  "hot": {
+    "recent_activity": "Conceptual summary of what shifted in the knowledge base.",
+    "active_threads": ["- Thread bullet"],
+    "key_takeaways": ["- Key takeaway bullet"],
+    "flagged_contradictions": ["- [[entity]] — conflict summary"]
+  }
+}
+```
+
+If the helper is unavailable, fall back to the manual steps below.
 
 **`${KNOWLEDGE_ROOT}/log.md`** — Append (NEVER edit prior entries). Machine-parseable one-line format:
 

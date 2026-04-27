@@ -7,6 +7,7 @@ from contextlib import redirect_stdout
 from pathlib import Path
 
 from .ingest_prep import build_ingest_prep, print_ingest_prep
+from .ingest_finalize import finalize_ingest
 from .ingest_status import (
     gather_ingest_source_status,
     has_pending_ingest_sources,
@@ -102,6 +103,9 @@ def _validate_args(parser: argparse.ArgumentParser, args: argparse.Namespace) ->
 
     if args.ingest_output_file and not (args.ingest_report or args.ingest_prep):
         parser.error("--ingest-output-file requires --ingest-report or --ingest-prep")
+
+    if args.ingest_finalize and not args.ingest_finalize_file.strip():
+        parser.error("--ingest-finalize requires --ingest-finalize-file")
 
 
 def _apply_agent_presets(args: argparse.Namespace) -> None:
@@ -357,6 +361,22 @@ def _run_ingest_prep(args: argparse.Namespace, repo_root: Path) -> int:
     return 0
 
 
+def _run_ingest_finalize(args: argparse.Namespace, repo_root: Path) -> int:
+    payload_path = Path(args.ingest_finalize_file)
+    if not payload_path.is_absolute():
+        payload_path = repo_root / payload_path
+    result = finalize_ingest(repo_root, payload_path)
+    print(f"ingest finalize updated {result['manifest_path']}, {result['log_path']}, {result['hot_path']}")
+    print(
+        "summary: "
+        f"source={result['source_path']} "
+        f"created={result['pages_created']} "
+        f"updated={result['pages_updated']} "
+        f"contradictions={result['contradictions']}"
+    )
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Validate llm-wiki structure and links")
     parser.add_argument(
@@ -378,6 +398,11 @@ def main() -> int:
         "--ingest-prep",
         action="store_true",
         help="Build a source-specific ingest preflight packet for agent execution",
+    )
+    parser.add_argument(
+        "--ingest-finalize",
+        action="store_true",
+        help="Apply manifest/log/hot bookkeeping for a completed ingest from a JSON payload",
     )
     parser.add_argument(
         "--ingest-agent",
@@ -423,6 +448,11 @@ def main() -> int:
             "With --ingest-report or --ingest-prep, write output to this path instead of stdout; "
             "commonly used by --ingest-agent"
         ),
+    )
+    parser.add_argument(
+        "--ingest-finalize-file",
+        default="",
+        help="With --ingest-finalize, JSON payload describing manifest/log/hot updates to apply",
     )
     parser.add_argument(
         "--format",
@@ -636,6 +666,9 @@ def main() -> int:
 
     if args.ingest_prep:
         return _run_ingest_prep(args, repo_root)
+
+    if args.ingest_finalize:
+        return _run_ingest_finalize(args, repo_root)
 
     if args.status_report:
         return _run_status(args, repo_root)

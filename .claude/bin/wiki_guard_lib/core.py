@@ -11,6 +11,7 @@ from .constants import (
     WIKILINK_RE,
 )
 from .ingest_prep import build_ingest_prep, detect_knowledge_root, print_ingest_prep
+from .ingest_finalize import finalize_ingest
 from .ingest_status import (
     build_ingest_queue_command,
     compute_sha256,
@@ -137,6 +138,7 @@ __all__ = [
     "detect_knowledge_root",
     "build_ingest_prep",
     "print_ingest_prep",
+    "finalize_ingest",
     "append_query_log",
     "gather_query_prep",
     "normalize_query_log_mode",
