@@ -72,6 +72,7 @@
 | [[college_of_dance]] | Bard subclass (2024 PHB); movement and mobility focus | 1 | draft | 2026-04-27 |
 | [[college_of_glamour]] | Bard subclass (2024 PHB); charm and illusion focus | 1 | draft | 2026-04-27 |
 | [[college_of_lore]] | Bard subclass (2024 PHB); knowledge and versatility focus | 1 | draft | 2026-04-27 |
+| [[blinded]] | D&D 5e condition; can't see, auto-fail sight checks, attacks against have Advantage, own attacks have Disadvantage | 1 | draft | 2026-04-27 |
 
 ## Notes
 

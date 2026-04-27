@@ -9,9 +9,9 @@ updated: 2026-04-27
 
 ## Recent Activity
 
+- [2026-04-27] INGEST `raw/conditions/Blinded.md` — 1 new reference page: Blinded condition (sight loss, attack Advantage/Disadvantage asymmetry).
 - [2026-04-27] INGEST `raw/class/Bard.md` — 5 new reference pages: Bard class (d8 charisma caster with Bardic Inspiration) + 4 subclass stubs (Valor, Dance, Glamour, Lore).
 - [2026-04-26] INGEST `Campaign-Timeline.md` — 22 new pages, 16 major updates. Party fully characterized. Conflict chain now fully documented.
-- [2026-04-26] INGEST `Shattered-Sea-Tone-Guide.md` — 3 skill pages added.
 - [2026-04-26] INGEST `The-Shattered-Sea.md` — 35 pages, setting foundation.
 
 ## Active Threads
