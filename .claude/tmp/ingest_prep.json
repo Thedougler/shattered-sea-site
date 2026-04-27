@@ -1,25 +1,21 @@
 {
   "ok": true,
-  "source_path": "raw/npcs/Nona-Black-Jaw.md",
+  "source_path": "raw/species/Rattkin.md",
   "knowledge_root": "content",
   "source_type": "document",
-  "size_bytes": 2693,
-  "content_hash": "sha256:950a8ce8d93e7ccf891242179ca6bc08e5bce2cb59afaaf0cea0f1cd6b8dd5f7",
+  "size_bytes": 6360,
+  "content_hash": "sha256:8c3e388728f9a81ce630616d843e937ee81a06f1d431a785d39702b20b4c0a5f",
   "ingest_status": "new",
   "last_ingested": null,
-  "suggested_entity_slug": "nona_black_jaw",
+  "suggested_entity_slug": "rattkin",
   "wikilinks": {
-    "total_unique": 7,
+    "total_unique": 4,
     "existing_entities": [
+      "calveno",
       "perrin_black_jaw",
-      "port_tidefall",
-      "the_drowned_maw",
       "the_passage",
-      "the_warren",
-      "vestra"
+      "the_warren"
     ],
-    "unresolved_entities": [
-      "rattkin"
-    ]
+    "unresolved_entities": []
   }
 }
