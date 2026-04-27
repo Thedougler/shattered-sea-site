@@ -1,15 +1,15 @@
 ---
 name: llm-wiki
 description: >
-  The foundational knowledge distillation pattern for building and maintaining an AI-powered Obsidian wiki.
-  Based on Andrej Karpathy's LLM Wiki architecture. Use this skill whenever the user wants to understand the
-  wiki pattern, set up a new knowledge base, or needs guidance on the three-layer architecture (raw sources →
-  wiki → schema). Also use when discussing knowledge management strategy, wiki structure decisions, or how
-  to organize distilled knowledge. This is the "theory" skill — other skills handle specific operations
-  (ingesting, querying, linting).
+  LOAD FIRST — before any wiki operation. This skill defines the vault layout, CLI quick-reference,
+  file naming conventions (snake_case), retrieval primitives (which Claude Code tool at each cost
+  tier), and core principles shared by all wiki skills. Load this skill before running ingest, query,
+  lint, wiki-status, wiki-synthesize, obsidian-cli, or any other operation inside the wiki — even
+  when the user does not mention it explicitly. Also use when the user wants to understand the wiki
+  pattern, set up a new knowledge base, or discuss knowledge management strategy.
 ---
 
-# LLM Wiki — Knowledge Distillation Pattern
+# LLM Wiki — Vault Reference
 
 You are maintaining a persistent, compounding knowledge base. The wiki is a **compiled artifact** — knowledge is distilled once and kept current, not re-derived on every query.
 
@@ -25,12 +25,6 @@ You are maintaining a persistent, compounding knowledge base. The wiki is a **co
 | CLI tool | `python .claude/bin/wiki_guard.py [--flag]` |
 
 **Layout guard:** `wiki_guard.py` auto-detects `content/` vs `wiki/` layout. All commands route index/log/hot writes to the correct path — never hardcode `wiki/`.
-
-## Architecture (brief)
-
-- **`raw/`** — Original GM source documents. Read-only. Never touch.
-- **`content/`** — LLM-maintained wiki: entity pages organized in category subdirs, interconnected with `[[wikilinks]]`, each with YAML frontmatter.
-- **`.claude/`** — Schema layer: skills, rules, bin tools that govern how the wiki operates.
 
 ## Vault Structure
 
@@ -60,6 +54,8 @@ All structured wiki operations go through the CLI. Run from the repo root.
 | Ingest preflight for one source | `python .claude/bin/wiki_guard.py --ingest-agent --source raw/path/to/file.md` |
 | Finalize a completed ingest | `python .claude/bin/wiki_guard.py --ingest-finalize --ingest-finalize-file <payload.json>` |
 | Batch ingest queue | `python .claude/bin/wiki_guard.py --ingest-batch-agent` |
+| Runner (ordered batch with checkpoints) | `python .claude/bin/wiki_guard.py --ingest-runner-agent` |
+| Runner finalize (all pending stubs) | `python .claude/bin/wiki_guard.py --ingest-runner-finalize-agent` |
 | Lint check | `python .claude/bin/wiki_guard.py --lint-agent` |
 | Lint + auto-fix safe issues | `python .claude/bin/wiki_guard.py --lint-agent --lint-safe-fix` |
 | Query prep | `python .claude/bin/wiki_guard.py --query-agent --query-question "your question"` |
@@ -69,7 +65,7 @@ Always prefer `--agent` variants over `--report` variants — they emit machine-
 
 ## Retrieval Primitives (Claude Code tools)
 
-Use the cheapest tool that answers the question. Escalate only when the cheaper one falls short.
+Use the cheapest tool that answers the question. Escalate only when needed.
 
 | Need | Claude Code Tool | Cost |
 |------|-----------------|------|
@@ -86,49 +82,14 @@ Use the cheapest tool that answers the question. Escalate only when the cheaper 
 
 **The rule:** if `summary:` frontmatter fields answer the question, skip the page body. A 500-line page opened to read 15 lines wastes 485 lines of context.
 
-## Page Template
+## Provenance Markers
 
-```markdown
----
-title: Entity Name
-category: entities
-tags: [npc, pirate, faction_allied]
-aliases: [alternate name]
-sources: [raw/npcs/entity_name.md]
-summary: One or two sentences ≤200 chars — lets other skills preview without opening the page.
-provenance:
-  extracted: 0.75
-  inferred: 0.20
-  ambiguous: 0.05
-created: 2026-04-27T00:00:00Z
-updated: 2026-04-27T00:00:00Z
----
-
-# Entity Name
-
-One-paragraph overview.
-
-## Key Facts
-
-- Direct claim from source.
-- Synthesized implication not stated explicitly. ^[inferred]
-- Claim two sources disagree on. ^[ambiguous]
-
-## Connections
-
-- [[related_entity]] — relationship description
-
-## Sources
-
-- [[references/source_doc]] — provenance note
-```
-
-### Provenance markers
+Apply these inline on every wiki page body. The `ingest` skill owns the full page template — these markers apply to all content-writing operations.
 
 | State | Marker | When |
 |-------|--------|------|
 | Extracted | *(none — default)* | Paraphrase of what a source says |
-| Inferred | `^[inferred]` | LLM synthesis / implication |
+| Inferred | `^[inferred]` | LLM synthesis / implication not stated in source |
 | Ambiguous | `^[ambiguous]` | Sources conflict or source is unclear |
 
 ## Core Principles
@@ -143,10 +104,10 @@ One-paragraph overview.
 
 ## Skill Reference
 
-Load the relevant skill before starting any structured operation:
+Load the relevant skill before starting any structured operation. This skill (`llm-wiki`) is always the first to load.
 
-| Operation | Skill |
-|-----------|-------|
+| Operation | Next skill to load |
+|-----------|-------------------|
 | Ingest a source doc | `ingest` |
 | Answer a question | `query` |
 | Health check | `lint` |

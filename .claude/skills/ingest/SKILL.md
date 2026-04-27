@@ -11,6 +11,8 @@ description: >
 
 # LLM-Wiki Ingest Skill
 
+> **Prerequisite:** Load the `llm-wiki` skill before this one. Vault layout (`content/`), file naming (`snake_case`), CLI quick-reference, retrieval primitives, provenance markers, and core principles are defined there — not repeated here.
+
 You are a deep agent executing a structured ingestion pipeline. You do NOT summarize
 documents — you synthesize them into a persistent, interlinked knowledge graph.
 
@@ -52,9 +54,9 @@ If `status == unchanged`: skip and tell the user. If `new` or `changed`: proceed
 # → .claude/tmp/ingest_batch.json  (queue + per-source preflight packets, cap 5)
 ```
 
-**KNOWLEDGE_ROOT** is set from tool output: `content/` if `content/index.md` exists, else `wiki/`. If neither exists, stop — tell user to run `/llm-wiki:scaffold`.
+**KNOWLEDGE_ROOT** is provided in the tool output JSON. If neither `content/` nor `wiki/` exists, stop and tell the user to scaffold the vault first.
 
-**Read `${KNOWLEDGE_ROOT}/index.md` in full before Phase 2.** You can parallelize this read with the source file read in Phase 1.
+**Read `${KNOWLEDGE_ROOT}/index.md` in full before Phase 2.** Parallelize this read with the source file read in Phase 1.
 
 ## Ingestion Protocol
 
