@@ -1,22 +1,25 @@
 {
   "ok": true,
-  "source_path": "raw/npcs/Master-Kyzil.md",
+  "source_path": "raw/npcs/Nona-Black-Jaw.md",
   "knowledge_root": "content",
   "source_type": "document",
-  "size_bytes": 4924,
-  "content_hash": "sha256:e8488edb864bd6d576e4ef91edee6f450de7735cce93e8e13d8e700ed385f8d5",
+  "size_bytes": 2693,
+  "content_hash": "sha256:950a8ce8d93e7ccf891242179ca6bc08e5bce2cb59afaaf0cea0f1cd6b8dd5f7",
   "ingest_status": "new",
   "last_ingested": null,
-  "suggested_entity_slug": "master_kyzil",
+  "suggested_entity_slug": "nona_black_jaw",
   "wikilinks": {
-    "total_unique": 5,
+    "total_unique": 7,
     "existing_entities": [
-      "crisdalynn_khinriss",
+      "perrin_black_jaw",
       "port_tidefall",
-      "sentinels_of_the_eyrie",
       "the_drowned_maw",
-      "the_high_eyrie"
+      "the_passage",
+      "the_warren",
+      "vestra"
     ],
-    "unresolved_entities": []
+    "unresolved_entities": [
+      "rattkin"
+    ]
   }
 }

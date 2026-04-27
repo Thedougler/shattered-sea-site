@@ -9,7 +9,8 @@ updated: 2026-04-27
 
 ## Recent Activity
 
-- [2026-04-27] INGEST `raw/npcs/Master-Kyzil.md` — Kyzil fully expanded: barn owl appearance, "Who." voice, dreidel detail, Port Tidefall presence, withheld truth about surviving.
+- [2026-04-27] INGEST `raw/npcs/Nona-Black-Jaw.md` — Nona Black-Jaw and Rattkin species stub created; Vestra gains heirloom provenance; Passage gains Tangle structure; Nona doesn't know the Vestra is gone.
+- [2026-04-27] INGEST `raw/npcs/Master-Kyzil.md` — Kyzil fully expanded: barn owl, "Who." voice, dreidel, Port Tidefall, withheld truth.
 - [2026-04-27] INGEST `raw/npcs/Felix-Aho.md` — Félix Aho and Vaka created; the_grung gains Gold caste division intelligence.
 - [2026-04-27] INGEST `raw/factions/Sentinels-Of-The-Eyrie.md` — Sentinels fully expanded; Soul Incarnate secret introduced.
 - [2026-04-27] INGEST `raw/conditions/Blinded.md` — 1 new reference page: Blinded condition.
