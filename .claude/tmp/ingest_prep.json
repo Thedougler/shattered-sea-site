@@ -1,34 +1,28 @@
 {
   "ok": true,
-  "source_path": "raw/regions/Verdant-Teeth.md",
+  "source_path": "raw/species/The-Antheri.md",
   "knowledge_root": "content",
   "source_type": "document",
-  "size_bytes": 6003,
-  "content_hash": "sha256:27893194ced7294ade75b5586c14a6a326e53b6750785b3cca8ae966c64c9045",
+  "size_bytes": 11305,
+  "content_hash": "sha256:33181a86f3595b3f3fa0d2ef238f322ddfc7ab9568d7584bd2d9404306cb0c53",
   "ingest_status": "new",
   "last_ingested": null,
-  "suggested_entity_slug": "verdant_teeth",
+  "suggested_entity_slug": "the_antheri",
   "wikilinks": {
-    "total_unique": 16,
+    "total_unique": 10,
     "existing_entities": [
-      "grung",
-      "jean_claude_tabarnack",
-      "kalowe",
-      "pell",
-      "sentinels_of_the_eyrie",
-      "simone_tabarnack",
-      "sorn",
-      "the_doldrums",
-      "the_grung",
-      "the_midchain",
-      "the_shattered_sea"
+      "auralis",
+      "catarina_davirelli",
+      "halythion",
+      "pearl_of_souls",
+      "red_lady",
+      "salvaged_antheri_plate",
+      "the_drowned_maw",
+      "the_shattered_sea",
+      "the_tessarine_concordat"
     ],
     "unresolved_entities": [
-      "aruhe",
-      "dreth",
-      "karath",
-      "orak",
-      "veth"
+      "cats_curio's"
     ]
   }
 }

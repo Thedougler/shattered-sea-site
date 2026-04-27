@@ -106,6 +106,12 @@ Useful options:
 # Emit a one-command ordered ingest queue for all pending sources
 ./.claude/bin/wiki_guard --ingest-report --pending-only --ingest-queue
 
+# Build a compact multi-source packet with per-source prep data for the next pending files
+./.claude/bin/wiki_guard --ingest-batch-agent
+
+# Build a sequential runner manifest and materialize per-source prep checkpoints
+./.claude/bin/wiki_guard --ingest-runner-agent
+
 # Exit non-zero if pending sources exist (automation/CI gate)
 ./.claude/bin/wiki_guard --ingest-report --pending-only --fail-on-pending
 ```
@@ -118,6 +124,26 @@ Report behavior:
 - Recommends next source by smallest pending file (fastest ingest-first)
 - Optionally emits a one-command queue to ingest all pending sources in order
 - Can act as a strict gate with `--fail-on-pending` (exit code 2 when pending exists)
+
+Batch preflight behavior:
+
+- `--ingest-batch` bundles the current queue plus per-source prep packets into one response
+- `--ingest-batch-agent` implies `--ingest-batch`, sets `--pending-only`, defaults to JSON, caps selection to 5, and writes `.claude/tmp/ingest_batch.json`
+- Batch selection is deterministic: pending sources are ordered by smallest file first to minimize ingest latency and cognitive load
+- The batch payload includes a ready-to-use queue command plus `build_ingest_prep` output for each selected source
+
+Runner behavior:
+
+- `--ingest-runner` builds a sequential manifest on top of the batch packet and writes one prep checkpoint file per selected source
+- `--ingest-runner-agent` implies `--ingest-runner`, sets `--pending-only`, defaults to JSON, caps selection to 5, writes `.claude/tmp/ingest_runner.json`, and stages checkpoint files in `.claude/tmp/ingest_runner/`
+- Each runner step includes a stable `prep_file` to read, a paired `finalize_file` path to fill later, and a deterministic execution order
+- Runner mode is intended to lower agent state management, not to write wiki content automatically
+
+Finalize behavior:
+
+- `--ingest-finalize` accepts a single payload object, a top-level `entries` array, or a bare JSON array of payloads
+- Finalize is idempotent for unchanged payloads: if the manifest already matches the incoming source hash and page lists, the tool skips duplicate log/hot writes
+- Batch finalize applies entries sequentially using the detected knowledge layout, then emits an aggregate applied/skipped summary
 
 ## Wiki Status Utility
 

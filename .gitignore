@@ -19,10 +19,4 @@ tests/__pycache__/
 .env
 raw/
 .manifest.json
-content/concepts/
-content/entities/
-content/references/
-content/sources/
-content/skills/
-content/projects/
 .claude/tmp/

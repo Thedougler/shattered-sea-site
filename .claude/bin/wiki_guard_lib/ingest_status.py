@@ -7,6 +7,15 @@ from pathlib import Path
 from .models import IngestSourceStatus
 from .utils import quote_single
 
+_IGNORED_FILENAMES = {".ds_store", "thumbs.db", "desktop.ini"}
+
+
+def _should_ignore_raw_source(raw_dir: Path, path: Path) -> bool:
+    rel_parts = path.relative_to(raw_dir).parts
+    if any(part.startswith(".") for part in rel_parts):
+        return True
+    return path.name.lower() in _IGNORED_FILENAMES
+
 
 def compute_sha256(path: Path) -> str:
     digest = hashlib.sha256()
@@ -49,6 +58,8 @@ def gather_ingest_source_status(repo_root: Path) -> list[IngestSourceStatus]:
     statuses: list[IngestSourceStatus] = []
 
     for path in sorted(p for p in raw_dir.rglob("*") if p.is_file()):
+        if _should_ignore_raw_source(raw_dir, path):
+            continue
         rel = path.relative_to(repo_root).as_posix()
         content_hash = compute_sha256(path)
         size_bytes = path.stat().st_size

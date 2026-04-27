@@ -325,3 +325,48 @@ def test_main_ingest_report_writes_output_file(tmp_path: Path, monkeypatch, caps
     assert payload["summary"]["next_source"] == "raw/pending.md"
     assert "ingest report written to .claude/tmp/ingest_report.json" in out
     assert "summary: total=1 pending=1" in out
+
+
+def test_gather_ingest_source_status_ignores_hidden_and_system_files(tmp_path: Path, wiki_guard) -> None:
+    raw_dir = tmp_path / "raw"
+    raw_dir.mkdir(parents=True)
+    (raw_dir / "valid.md").write_text("ok\n", encoding="utf-8")
+    (raw_dir / ".DS_Store").write_text("ignored\n", encoding="utf-8")
+    (raw_dir / "Thumbs.db").write_text("ignored\n", encoding="utf-8")
+    hidden_dir = raw_dir / ".cache"
+    hidden_dir.mkdir(parents=True)
+    (hidden_dir / "x.md").write_text("ignored\n", encoding="utf-8")
+
+    statuses = wiki_guard.gather_ingest_source_status(tmp_path)
+    paths = [item.raw_path for item in statuses]
+
+    assert paths == ["raw/valid.md"]
+
+
+def test_main_ingest_report_queue_excludes_hidden_files(tmp_path: Path, monkeypatch, capsys, wiki_guard) -> None:
+    raw_dir = tmp_path / "raw"
+    raw_dir.mkdir(parents=True)
+    (raw_dir / "visible.md").write_text("ok\n", encoding="utf-8")
+    (raw_dir / ".DS_Store").write_text("ignored\n", encoding="utf-8")
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "wiki_guard.py",
+            "--repo-root",
+            str(tmp_path),
+            "--ingest-report",
+            "--pending-only",
+            "--ingest-queue",
+            "--format",
+            "json",
+        ],
+    )
+
+    code = wiki_guard.main()
+    payload = json.loads(capsys.readouterr().out)
+
+    assert code == 0
+    assert payload["queue"]["sources"] == ["raw/visible.md"]
+    assert payload["queue"]["command"] == "/llm-wiki:ingest 'raw/visible.md'"
