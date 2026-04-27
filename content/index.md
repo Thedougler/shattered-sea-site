@@ -74,6 +74,8 @@
 | [[college_of_lore]] | Bard subclass (2024 PHB); knowledge and versatility focus | 1 | draft | 2026-04-27 |
 | [[blinded]] | D&D 5e condition; can't see, auto-fail sight checks, attacks against have Advantage, own attacks have Disadvantage | 1 | draft | 2026-04-27 |
 | [[soul_incarnate]] | Truly neutral undead monk-lich; consciousness preserved past death to continue a chosen purpose; true head of the Sentinels | 1 | draft | 2026-04-27 |
+| [[felix_aho]] | Green-caste Karath Grung defector; fish vendor and Vaka founder at Port Tidefall; waiting for Jean-Claude; knows Gold caste is fractured | 1 | draft | 2026-04-27 |
+| [[vaka]] | Loose community of Grung defectors and freed slaves at Port Tidefall; built over 8 years by Félix Aho | 1 | draft | 2026-04-27 |
 
 ## Notes
 
