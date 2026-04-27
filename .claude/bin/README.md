@@ -125,6 +125,9 @@ Use `wiki_guard` status mode for a skill-aligned status/delta audit across curre
 `.manifest.json`.
 
 ```bash
+# Agent preset: JSON report on disk + concise stdout summary
+./.claude/bin/wiki_guard --status-agent
+
 # Human-readable status report
 ./.claude/bin/wiki_guard --status-report
 
@@ -134,6 +137,14 @@ Use `wiki_guard` status mode for a skill-aligned status/delta audit across curre
 # Show only pending (new/modified) sources
 ./.claude/bin/wiki_guard --status-report --pending-only
 ```
+
+Agent-oriented defaults for `--status-agent`:
+
+- Implies `--status-report`
+- Defaults `--status-format` to `json`
+- Writes report to `.claude/tmp/status_report.json`
+- Prints a concise stdout summary with `new`, `modified`, `deleted`, and `recommendation`
+- Preserves explicit overrides when you pass them
 
 Status behavior:
 
@@ -193,6 +204,9 @@ Separation of duties:
 Use `wiki_guard` lint mode to run the LLM-wiki lint skill checks with explicit workflow boundaries.
 
 ```bash
+# Agent preset: JSON report on disk + concise stdout + capped gap payloads
+./.claude/bin/wiki_guard --lint-agent
+
 # Full lint report (report-first workflow)
 ./.claude/bin/wiki_guard --lint-report
 
@@ -208,6 +222,14 @@ Use `wiki_guard` lint mode to run the LLM-wiki lint skill checks with explicit w
 # Return non-zero if manual work is still required
 ./.claude/bin/wiki_guard --lint-report --lint-fail-on-manual
 ```
+
+Agent-oriented defaults for `--lint-agent`:
+
+- Implies `--lint-report`
+- Defaults `--lint-format` to `json`
+- Writes report to `.claude/tmp/lint_report.json`
+- Caps gap payloads to `--lint-max-gaps 10 --lint-max-gap-pages 3`
+- Preserves explicit overrides when you pass them
 
 Responsibility split:
 
@@ -226,6 +248,9 @@ Responsibility split:
 Use `wiki_guard` query mode to offload retrieval prep work that is expensive in agent context windows.
 
 ```bash
+# Agent preset: JSON report on disk + concise stdout summary
+./.claude/bin/wiki_guard --query-agent --query-question "What is the relationship between the maw and leviathan?"
+
 # Build a ranked candidate set for a user question
 ./.claude/bin/wiki_guard --query-prep --query-question "What is the relationship between the maw and leviathan?"
 
@@ -254,6 +279,14 @@ Useful options:
 # Tune snippet extraction from candidate pages
 ./.claude/bin/wiki_guard --query-prep --query-question "..." --query-snippet-context 3 --query-max-snippets 3
 ```
+
+Agent-oriented defaults for `--query-agent`:
+
+- Implies `--query-prep`
+- Defaults `--query-format` to `json`
+- Writes report to `.claude/tmp/query_prep.json`
+- Prints a concise stdout summary with query type, mode, and candidate counts
+- Preserves explicit overrides when you pass them
 
 Separation of duties:
 

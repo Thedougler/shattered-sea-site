@@ -137,6 +137,38 @@ def test_main_status_report_json_output(tmp_path: Path, monkeypatch, capsys, wik
     assert payload["recommendation"] == "full_ingest"
 
 
+def test_main_status_agent_writes_default_json_file(
+    tmp_path: Path, monkeypatch, capsys, wiki_guard
+) -> None:
+    raw_dir = tmp_path / "raw"
+    raw_dir.mkdir(parents=True)
+    (raw_dir / "topic.md").write_text("hello\n", encoding="utf-8")
+    _write_env(tmp_path, "OBSIDIAN_SOURCES_DIR=raw\n")
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "wiki_guard.py",
+            "--repo-root",
+            str(tmp_path),
+            "--status-agent",
+        ],
+    )
+
+    code = wiki_guard.main()
+    out = capsys.readouterr().out
+    report_path = tmp_path / ".claude/tmp/status_report.json"
+    payload = json.loads(report_path.read_text(encoding="utf-8"))
+
+    assert code == 0
+    assert report_path.exists()
+    assert payload["delta"]["new"] == 1
+    assert payload["recommendation"] == "full_ingest"
+    assert "status report written to .claude/tmp/status_report.json" in out
+    assert "summary: new=1" in out
+
+
 def test_gather_wiki_status_reports_claude_project_delta(tmp_path: Path, wiki_guard) -> None:
     history_dir = tmp_path / ".claude-history"
     proj_a = history_dir / "proj_a"

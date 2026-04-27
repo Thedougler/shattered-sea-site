@@ -238,6 +238,62 @@ No inbound links.
     assert payload["safe_auto_fixable"]["index_wiki_ghosts"] == ["manual_page"]
 
 
+def test_main_lint_agent_applies_agent_defaults(
+    tmp_path: Path, monkeypatch, capsys, wiki_guard
+) -> None:
+    write_required_root(tmp_path)
+    (tmp_path / "content").mkdir()
+    (tmp_path / "content/index.md").write_text(
+        """# Index: shattered_sea
+
+## Entity Catalog
+
+| Entity | Summary | Sources | Status | Updated |
+|--------|---------|---------|--------|---------|
+| [[known_page]] | known | 1 | active | 2026-04-26 |
+
+## Notes
+""",
+        encoding="utf-8",
+    )
+    write_page(
+        tmp_path / "content/entities/known_page.md",
+        """---
+type: entity
+summary: Known
+source_count: 1
+status: active
+updated: 2026-04-26
+---
+
+## Overview
+Known page.
+""",
+    )
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "wiki_guard.py",
+            "--repo-root",
+            str(tmp_path),
+            "--lint-agent",
+        ],
+    )
+
+    code = wiki_guard.main()
+    out = capsys.readouterr().out
+    report_path = tmp_path / ".claude/tmp/lint_report.json"
+    payload = json.loads(report_path.read_text(encoding="utf-8"))
+
+    assert code == 0
+    assert report_path.exists()
+    assert payload["gaps_meta"]["max_pages_per_gap"] == 3
+    assert payload["gaps_meta"]["returned"] <= 10
+    assert "lint report written to .claude/tmp/lint_report.json" in out
+
+
 def test_lint_helpers_basics(wiki_guard) -> None:
     assert wiki_guard.parse_iso_date(None) is None
     assert wiki_guard.parse_iso_date("2026-13-40") is None
@@ -258,6 +314,184 @@ def test_classify_dead_link_typo_and_stub(wiki_guard) -> None:
     kind, likely = wiki_guard.classify_dead_link("totally_new", {"the_shattered_sea"})
     assert kind == "stub_worthy"
     assert likely is None
+
+
+def test_gather_lint_results_excludes_templates_from_inventory(
+    tmp_path: Path, wiki_guard
+) -> None:
+    write_required_root(tmp_path)
+    (tmp_path / "content").mkdir()
+    (tmp_path / "content/index.md").write_text(
+        """# Index: shattered_sea
+
+## Entity Catalog
+
+| Entity | Summary | Sources | Status | Updated |
+|--------|---------|---------|--------|---------|
+| [[real_page]] | real | 1 | active | 2026-04-26 |
+
+## Notes
+""",
+        encoding="utf-8",
+    )
+    write_page(
+        tmp_path / "content/entities/real_page.md",
+        """---
+type: entity
+summary: Real page
+source_count: 1
+status: active
+updated: 2026-04-26
+---
+
+## Overview
+Links to [[real_page]].
+""",
+    )
+    write_page(
+        tmp_path / "content/templates/npc_universal_profile.md",
+        """---
+type: entity
+summary: Template
+source_count: 1
+status: active
+updated: 2026-04-26
+---
+
+## Connections
+- [[FACTION_NAME]]
+""",
+    )
+
+    results = wiki_guard.gather_lint_results(tmp_path, today=date(2026, 4, 26))
+
+    assert results.pages_audited == 1
+    assert results.dead_links == []
+    assert results.index.wiki_ghosts == []
+
+
+def test_gather_lint_results_normalizes_escaped_wikilink_alias(
+    tmp_path: Path, wiki_guard
+) -> None:
+    write_required_root(tmp_path)
+    (tmp_path / "content").mkdir()
+    (tmp_path / "content/index.md").write_text(
+        """# Index: shattered_sea
+
+## Entity Catalog
+
+| Entity | Summary | Sources | Status | Updated |
+|--------|---------|---------|--------|---------|
+| [[source_page]] | source | 1 | active | 2026-04-26 |
+| [[the_antheri_ruins]] | ruins | 1 | active | 2026-04-26 |
+
+## Notes
+""",
+        encoding="utf-8",
+    )
+    write_page(
+        tmp_path / "content/entities/source_page.md",
+        r"""---
+type: entity
+summary: Source page
+source_count: 1
+status: active
+updated: 2026-04-26
+---
+
+## Overview
+Points at [[the_antheri_ruins\|the Shelfworks]].
+""",
+    )
+    write_page(
+        tmp_path / "content/entities/the_antheri_ruins.md",
+        """---
+type: entity
+summary: Ruins
+source_count: 1
+status: active
+updated: 2026-04-26
+---
+
+## Overview
+Ruins.
+""",
+    )
+
+    results = wiki_guard.gather_lint_results(tmp_path, today=date(2026, 4, 26))
+
+    assert results.dead_links == []
+    assert [orphan.slug for orphan in results.orphans] == ["source_page"]
+
+
+def test_gather_lint_results_filters_gap_terms_covered_by_existing_slug_tokens(
+    tmp_path: Path, wiki_guard
+) -> None:
+    write_required_root(tmp_path)
+    (tmp_path / "content").mkdir()
+    (tmp_path / "content/index.md").write_text(
+        """# Index: shattered_sea
+
+## Entity Catalog
+
+| Entity | Summary | Sources | Status | Updated |
+|--------|---------|---------|--------|---------|
+| [[the_drowned_maw]] | maw | 1 | active | 2026-04-26 |
+| [[the_shattered_sea]] | sea | 1 | active | 2026-04-26 |
+
+## Notes
+""",
+        encoding="utf-8",
+    )
+    write_page(
+        tmp_path / "content/entities/the_drowned_maw.md",
+        """---
+type: entity
+summary: Maw
+source_count: 1
+status: active
+updated: 2026-04-26
+---
+
+## Overview
+The Maw.
+""",
+    )
+    write_page(
+        tmp_path / "content/entities/the_shattered_sea.md",
+        """---
+type: entity
+summary: Sea
+source_count: 1
+status: active
+updated: 2026-04-26
+---
+
+## Overview
+The sea.
+""",
+    )
+    for index in range(3):
+        write_page(
+            tmp_path / f"content/entities/page_{index}.md",
+            f"""---
+type: entity
+summary: Page {index}
+source_count: 1
+status: active
+updated: 2026-04-26
+---
+
+## Overview
+The Maw threatens the Scatter.
+""",
+        )
+
+    results = wiki_guard.gather_lint_results(tmp_path, today=date(2026, 4, 26))
+    gap_terms = {gap.term for gap in results.gaps}
+
+    assert "Maw" not in gap_terms
+    assert "The Maw" not in gap_terms
 
 
 def test_collect_ingestion_dates_and_suggest_related_pages(wiki_guard) -> None:

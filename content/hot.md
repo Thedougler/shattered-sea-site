@@ -1,6 +1,6 @@
 ---
 title: Hot Cache
-updated: 2026-04-26
+updated: 2026-04-27
 ---
 
 # Hot Cache
@@ -9,6 +9,7 @@ updated: 2026-04-26
 
 ## Recent Activity
 
+- [2026-04-27] INGEST `raw/class/Bard.md` — 5 new reference pages: Bard class (d8 charisma caster with Bardic Inspiration) + 4 subclass stubs (Valor, Dance, Glamour, Lore).
 - [2026-04-26] INGEST `Campaign-Timeline.md` — 22 new pages, 16 major updates. Party fully characterized. Conflict chain now fully documented.
 - [2026-04-26] INGEST `Shattered-Sea-Tone-Guide.md` — 3 skill pages added.
 - [2026-04-26] INGEST `The-Shattered-Sea.md` — 35 pages, setting foundation.

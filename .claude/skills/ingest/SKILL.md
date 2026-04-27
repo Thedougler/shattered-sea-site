@@ -23,14 +23,43 @@ $ARGUMENTS — one of:
 - "all" — process all files in raw/ not yet in the manifest (or changed since last ingest)
 - Empty — check manifest, list pending files, ask which to process
 
+## Agent-Optimized Fast Path (Default)
+
+Before manual parsing or traversal, run deterministic ingest tooling:
+
+1. Pending/source queue:
+
+```bash
+./.claude/bin/wiki_guard --ingest-report --pending-only --ingest-queue --format json --ingest-output-file .claude/tmp/ingest_report.json
+```
+
+2. Source-specific preflight packet:
+
+```bash
+./.claude/bin/wiki_guard --ingest-agent --source raw/<file>.md
+```
+
+`--ingest-agent` behavior:
+- Implies `--ingest-prep`
+- Defaults to JSON output
+- Writes packet to `.claude/tmp/ingest_prep.json`
+- Prints concise stdout summary (source, ingest status, knowledge root)
+
+Read the generated JSON file before continuing. Treat this packet as canonical for:
+- Knowledge root detection (`content/` vs `wiki/`)
+- Manifest/hash ingest status (`new`, `changed`, `unchanged`)
+- Existing vs unresolved wikilinks already present in the source
+
+Manual hashing and path heuristics are fallback only when `wiki_guard` is unavailable or fails.
+
 ## Pre-Flight Checks
 
 Before ingesting anything:
 
 1. Confirm you are inside an LLM-wiki domain root (CLAUDE.md and a valid knowledge index must exist).
-   If not found, tell the user to run `/llm-wiki:scaffold` first.
+  If not found, tell the user to run `/llm-wiki:scaffold` first.
 
-  Set `KNOWLEDGE_ROOT` before proceeding:
+  Set `KNOWLEDGE_ROOT` from `wiki_guard --ingest-agent` output:
   - `content` if `content/index.md` exists
   - otherwise `wiki` if `wiki/index.md` exists
   - otherwise stop and ask the user to scaffold or repair the domain index
@@ -39,16 +68,13 @@ Before ingesting anything:
    If the user provides a URL instead of a file path, use `/llm-wiki:defuddle` to extract
    clean markdown (`defuddle parse <url> --md -o raw/<slug>.md`), then proceed with that file.
 
-3. Check `.manifest.json` at the domain root to determine whether this file needs ingesting:
-   - If the manifest doesn't exist yet, proceed (first ingest — create it in Phase 6).
-   - If the file is **not** in the manifest, proceed.
-   - If the file **is** in the manifest, compute its SHA-256 hash:
-     `sha256sum -- "<file>"` (Linux) or `shasum -a 256 -- "<file>"` (macOS).
-     Always double-quote the path and use `--` to prevent filenames with special characters
-     from being misinterpreted by the shell.
-     - If the hash **matches** `content_hash` in the manifest → skip; content is unchanged
-       (handles timestamp drift from git checkout, copies, NFS). Tell the user it was skipped.
-     - If the hash **differs** → re-ingest; content has genuinely changed since last run.
+3. Check `.manifest.json` status using `wiki_guard --ingest-agent` packet:
+   - If status is `unchanged`, skip and tell the user it was skipped.
+   - If status is `new` or `changed`, proceed.
+   - If manifest is missing, proceed (first ingest; create manifest in Phase 6).
+
+   Fallback (only if tooling unavailable): compute SHA-256 manually via
+   `sha256sum -- "<file>"` (Linux) or `shasum -a 256 -- "<file>"` (macOS), with quoted paths and `--`.
 
 4. Read `${KNOWLEDGE_ROOT}/index.md` in full. This is mandatory — do NOT proceed without reading it.
 
@@ -107,6 +133,9 @@ Minor entities identified: <list>
 Potential contradictions with existing wiki: <list or "none">
 ```
 
+Agent optimization: seed this analysis with `wikilinks.existing_entities` and
+`wikilinks.unresolved_entities` from `.claude/tmp/ingest_prep.json` before deep reading.
+
 ---
 
 ### Phase 1b — QMD Source Discovery (optional)
@@ -153,6 +182,9 @@ Using `${KNOWLEDGE_ROOT}/index.md` (already read in pre-flight):
 
 - Classify every major entity as `existing` (has a wiki page) or `novel` (no wiki page yet).
 - Identify the top 5 most relevant existing pages that will need updates or new links.
+
+Agent optimization: use `suggested_entity_slug` from ingest prep as the first candidate target,
+then verify in `${KNOWLEDGE_ROOT}/index.md`.
 
 ---
 
@@ -388,6 +420,21 @@ Print a final summary to the user:
   Review these flagged contradictions:
     → [[entity_name]]: <brief description>
 ```
+
+## Tooling Friction Protocol
+
+If `wiki_guard` produces unexpected output, missing fields, runtime errors, or incorrect layout
+resolution, stop and invoke the `wiki-tooling-fixer` subagent before proceeding with manual workarounds.
+Do not paper over tooling defects inside ingest content changes.
+
+When escalating, provide:
+- Exact command run
+- Stdout/stderr
+- Expected behavior
+- Actual behavior
+- Source file used for reproduction
+
+After fix, rerun the same `wiki_guard` command and verify the packet/report before resuming ingestion.
 
 ## Edge Cases
 

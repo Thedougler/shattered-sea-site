@@ -157,6 +157,12 @@ def _collect_entity_gaps(
     pages: dict[str, dict[str, object]],
     page_slugs: set[str],
 ) -> list[EntityGapFinding]:
+    slug_tokens = {
+        token
+        for slug in page_slugs
+        for token in slug.split("_")
+        if token and token not in {"the", "a", "an"}
+    }
     term_pages: dict[str, set[str]] = {}
     for slug, info in pages.items():
         body = strip_frontmatter(str(info["text"]))
@@ -172,6 +178,10 @@ def _collect_entity_gaps(
             if all(token in ENTITY_GAP_STOP_TERMS for token in tokens):
                 continue
             if all(token in ENTITY_GAP_STOP_TERMS or token in GAP_NOISE_WORDS for token in tokens):
+                continue
+            normalized_tokens = [token.lower() for token in tokens]
+            meaningful_tokens = [token for token in normalized_tokens if token not in {"the", "a", "an"}]
+            if meaningful_tokens and all(token in slug_tokens for token in meaningful_tokens):
                 continue
 
             normalized = term.replace(" ", "_").lower()

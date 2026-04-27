@@ -19,6 +19,25 @@ You are computing the current state of the wiki: what's been ingested, what's ne
 1. Read `.env` to get `OBSIDIAN_VAULT_PATH`, `OBSIDIAN_SOURCES_DIR`, `CLAUDE_HISTORY_PATH`
 2. Read `.manifest.json` at the vault root — this is the ingest tracking ledger
 
+## Tool-First Fast Path (default)
+
+Prefer one deterministic status command over manual manifest and filesystem traversal:
+
+```bash
+./.claude/bin/wiki_guard --status-agent
+```
+
+Agent preset behavior:
+- Implies `--status-report`
+- Defaults to JSON output written to `.claude/tmp/status_report.json`
+- Prints a concise summary to stdout
+
+Execution pattern:
+- Read the stdout summary first.
+- Read `.claude/tmp/status_report.json` before expanding into individual source rows.
+- If the user only cares about ingestable work, rerun with `--pending-only`.
+- Use manual manifest/source traversal only if `wiki_guard` is unavailable or fails.
+
 ## The Manifest
 
 The manifest lives at `$OBSIDIAN_VAULT_PATH/.manifest.json`. It tracks every source file that has been ingested. If it doesn't exist, this is a fresh vault with nothing ingested.
@@ -67,6 +86,11 @@ The manifest lives at `$OBSIDIAN_VAULT_PATH/.manifest.json`. It tracks every sou
 ```
 
 ## Step 1: Scan Current Sources
+
+Use the `wiki_guard --status-agent` report as the canonical inventory/delta payload. The tool already
+resolves env paths, scans source roots, compares against the manifest, and computes the recommendation.
+
+If fallback is required, perform the manual scan below.
 
 Build an inventory of everything available to ingest right now:
 

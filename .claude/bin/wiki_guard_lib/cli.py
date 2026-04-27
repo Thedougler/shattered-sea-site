@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import argparse
+import io
+import json
+from contextlib import redirect_stdout
 from pathlib import Path
 
 from .ingest_prep import build_ingest_prep, print_ingest_prep
@@ -16,8 +19,19 @@ from .linting import (
     render_lint_report_json,
     render_lint_report_text,
 )
-from .query_prep import append_query_log, gather_query_prep, print_query_prep
-from .status_audit import gather_wiki_status, print_wiki_status
+from .query_prep import (
+    append_query_log,
+    gather_query_prep,
+    print_query_prep,
+    render_query_prep_json,
+    render_query_prep_text,
+)
+from .status_audit import (
+    gather_wiki_status,
+    print_wiki_status,
+    render_wiki_status_json,
+    render_wiki_status_text,
+)
 from .synthesis_audit import gather_synthesis_candidates, print_synthesis_report
 from .validation import gather_issues, print_report
 
@@ -44,8 +58,14 @@ def _validate_args(parser: argparse.ArgumentParser, args: argparse.Namespace) ->
     if args.query_log and not args.query_prep:
         parser.error("--query-log requires --query-prep")
 
+    if args.query_output_file and not args.query_prep:
+        parser.error("--query-output-file requires --query-prep")
+
     if args.query_result_pages < 0:
         parser.error("--query-result-pages must be >= 0")
+
+    if args.status_output_file and not args.status_report:
+        parser.error("--status-output-file requires --status-report")
 
     if args.status_report and args.ingest_report:
         parser.error("--status-report cannot be combined with --ingest-report")
@@ -80,6 +100,49 @@ def _validate_args(parser: argparse.ArgumentParser, args: argparse.Namespace) ->
     if args.ingest_prep and not args.source.strip():
         parser.error("--ingest-prep requires --source")
 
+    if args.ingest_output_file and not (args.ingest_report or args.ingest_prep):
+        parser.error("--ingest-output-file requires --ingest-report or --ingest-prep")
+
+
+def _apply_agent_presets(args: argparse.Namespace) -> None:
+    if args.lint_agent:
+        args.lint_report = True
+        if args.lint_format == "text":
+            args.lint_format = "json"
+        if args.lint_max_gaps == 25:
+            args.lint_max_gaps = 10
+        if args.lint_max_gap_pages == 5:
+            args.lint_max_gap_pages = 3
+
+    if args.status_agent:
+        args.status_report = True
+        if args.status_format == "text":
+            args.status_format = "json"
+        if not args.status_output_file:
+            args.status_output_file = ".claude/tmp/status_report.json"
+
+    if args.query_agent:
+        args.query_prep = True
+        if args.query_format == "text":
+            args.query_format = "json"
+        if not args.query_output_file:
+            args.query_output_file = ".claude/tmp/query_prep.json"
+
+    if args.ingest_agent:
+        args.ingest_prep = True
+        if args.format == "text":
+            args.format = "json"
+        if not args.ingest_output_file:
+            args.ingest_output_file = ".claude/tmp/ingest_prep.json"
+
+
+def _resolve_output_path(repo_root: Path, output_file: str) -> Path:
+    output_path = Path(output_file)
+    if not output_path.is_absolute():
+        output_path = repo_root / output_path
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    return output_path
+
 
 def _run_synthesis(args: argparse.Namespace, repo_root: Path) -> int:
     synth_report = gather_synthesis_candidates(
@@ -95,6 +158,32 @@ def _run_synthesis(args: argparse.Namespace, repo_root: Path) -> int:
 
 def _run_status(args: argparse.Namespace, repo_root: Path) -> int:
     status_report = gather_wiki_status(repo_root)
+    if args.status_output_file:
+        rendered = (
+            render_wiki_status_json(
+                status_report,
+                limit=max(1, args.limit),
+                pending_only=args.pending_only,
+            )
+            if args.status_format == "json"
+            else render_wiki_status_text(
+                status_report,
+                limit=max(1, args.limit),
+                pending_only=args.pending_only,
+            )
+        )
+        output_path = _resolve_output_path(repo_root, args.status_output_file)
+        output_path.write_text(rendered + "\n", encoding="utf-8")
+        print(f"status report written to {output_path.relative_to(repo_root)}")
+        print(
+            "summary: "
+            f"new={sum(1 for item in status_report.sources if item.status == 'new')} "
+            f"modified={sum(1 for item in status_report.sources if item.status == 'modified')} "
+            f"deleted={len(status_report.deleted_sources)} "
+            f"recommendation={status_report.recommendation}"
+        )
+        return 0
+
     print_wiki_status(
         status_report,
         limit=max(1, args.limit),
@@ -114,7 +203,25 @@ def _run_query(args: argparse.Namespace, repo_root: Path) -> int:
         snippet_context=max(0, args.query_snippet_context),
         max_snippets=max(1, args.query_max_snippets),
     )
-    print_query_prep(query_result, args.query_format)
+    if args.query_output_file:
+        rendered = (
+            render_query_prep_json(query_result)
+            if args.query_format == "json"
+            else render_query_prep_text(query_result)
+        )
+        output_path = _resolve_output_path(repo_root, args.query_output_file)
+        output_path.write_text(rendered + "\n", encoding="utf-8")
+        print(f"query prep written to {output_path.relative_to(repo_root)}")
+        print(
+            "summary: "
+            f"type={query_result.query_type} "
+            f"mode={query_result.mode} "
+            f"primary={len(query_result.primary)} "
+            f"secondary={len(query_result.secondary)} "
+            f"excluded_internal={query_result.excluded_internal_count}"
+        )
+    else:
+        print_query_prep(query_result, args.query_format)
 
     if args.query_log:
         default_result_pages = len(query_result.primary)
@@ -188,13 +295,34 @@ def _run_lint(args: argparse.Namespace, repo_root: Path) -> int:
 
 def _run_ingest(args: argparse.Namespace, repo_root: Path) -> int:
     statuses = gather_ingest_source_status(repo_root)
-    print_ingest_report(
-        statuses,
-        limit=max(1, args.limit),
-        pending_only=args.pending_only,
-        output_format=args.format,
-        include_queue=args.ingest_queue,
-    )
+    if args.ingest_output_file:
+        buffer = io.StringIO()
+        with redirect_stdout(buffer):
+            print_ingest_report(
+                statuses,
+                limit=max(1, args.limit),
+                pending_only=args.pending_only,
+                output_format=args.format,
+                include_queue=args.ingest_queue,
+            )
+        output_path = _resolve_output_path(repo_root, args.ingest_output_file)
+        output_path.write_text(buffer.getvalue().rstrip() + "\n", encoding="utf-8")
+        pending_count = sum(1 for item in statuses if item.status in {"new", "changed"})
+        print(f"ingest report written to {output_path.relative_to(repo_root)}")
+        print(
+            "summary: "
+            f"total={len(statuses)} "
+            f"pending={pending_count} "
+            f"next={(next((s.raw_path for s in statuses if s.status in {'new', 'changed'}), None) or 'none')}"
+        )
+    else:
+        print_ingest_report(
+            statuses,
+            limit=max(1, args.limit),
+            pending_only=args.pending_only,
+            output_format=args.format,
+            include_queue=args.ingest_queue,
+        )
     if args.fail_on_pending and has_pending_ingest_sources(statuses):
         return 2
     return 0
@@ -202,7 +330,28 @@ def _run_ingest(args: argparse.Namespace, repo_root: Path) -> int:
 
 def _run_ingest_prep(args: argparse.Namespace, repo_root: Path) -> int:
     payload = build_ingest_prep(repo_root, args.source)
-    print_ingest_prep(payload, args.format)
+    if args.ingest_output_file:
+        if args.format == "json":
+            rendered = json.dumps(payload, indent=2)
+        else:
+            buffer = io.StringIO()
+            with redirect_stdout(buffer):
+                print_ingest_prep(payload, args.format)
+            rendered = buffer.getvalue().rstrip()
+        output_path = _resolve_output_path(repo_root, args.ingest_output_file)
+        output_path.write_text(rendered + "\n", encoding="utf-8")
+        print(f"ingest prep written to {output_path.relative_to(repo_root)}")
+        if payload.get("ok") is True:
+            print(
+                "summary: "
+                f"source={payload.get('source_path')} "
+                f"status={payload.get('ingest_status')} "
+                f"knowledge_root={payload.get('knowledge_root')}"
+            )
+        else:
+            print(f"summary: error={payload.get('error')}")
+    else:
+        print_ingest_prep(payload, args.format)
     if payload.get("ok") is False:
         return 2
     return 0
@@ -231,9 +380,25 @@ def main() -> int:
         help="Build a source-specific ingest preflight packet for agent execution",
     )
     parser.add_argument(
+        "--ingest-agent",
+        action="store_true",
+        help=(
+            "Agent preset for ingest preflight: implies --ingest-prep, defaults to JSON output, "
+            "and writes the prep packet to .claude/tmp/ingest_prep.json"
+        ),
+    )
+    parser.add_argument(
         "--status-report",
         action="store_true",
         help="Show skill-aligned wiki status/delta across sources and manifest",
+    )
+    parser.add_argument(
+        "--status-agent",
+        action="store_true",
+        help=(
+            "Agent preset for status workflow: implies --status-report, defaults to JSON output, "
+            "and writes the report to .claude/tmp/status_report.json"
+        ),
     )
     parser.add_argument(
         "--pending-only",
@@ -252,6 +417,14 @@ def main() -> int:
         help="With --ingest-prep, source path relative to repo root (for example raw/factions/Foo.md)",
     )
     parser.add_argument(
+        "--ingest-output-file",
+        default="",
+        help=(
+            "With --ingest-report or --ingest-prep, write output to this path instead of stdout; "
+            "commonly used by --ingest-agent"
+        ),
+    )
+    parser.add_argument(
         "--format",
         choices=("text", "json"),
         default="text",
@@ -262,6 +435,14 @@ def main() -> int:
         choices=("text", "json"),
         default="text",
         help="With --status-report, output format (default: text)",
+    )
+    parser.add_argument(
+        "--status-output-file",
+        default="",
+        help=(
+            "With --status-report, write report to this path instead of stdout; "
+            "commonly used by --status-agent"
+        ),
     )
     parser.add_argument(
         "--ingest-queue",
@@ -277,6 +458,14 @@ def main() -> int:
         "--lint-report",
         action="store_true",
         help="Run category-aware lint audit aligned to LLM-wiki lint workflow",
+    )
+    parser.add_argument(
+        "--lint-agent",
+        action="store_true",
+        help=(
+            "Agent preset for lint workflow: implies --lint-report, defaults to JSON output, "
+            "and caps entity-gap payloads for token efficiency"
+        ),
     )
     parser.add_argument(
         "--lint-category",
@@ -325,6 +514,14 @@ def main() -> int:
         help="Build query candidate pages/snippets so Claude can synthesize without broad scans",
     )
     parser.add_argument(
+        "--query-agent",
+        action="store_true",
+        help=(
+            "Agent preset for query workflow: implies --query-prep, defaults to JSON output, "
+            "and writes the report to .claude/tmp/query_prep.json"
+        ),
+    )
+    parser.add_argument(
         "--query-question",
         default="",
         help="With --query-prep, user question to rank candidate pages",
@@ -350,6 +547,14 @@ def main() -> int:
         choices=("text", "json"),
         default="text",
         help="With --query-prep, output format (default: text)",
+    )
+    parser.add_argument(
+        "--query-output-file",
+        default="",
+        help=(
+            "With --query-prep, write report to this path instead of stdout; "
+            "commonly used by --query-agent"
+        ),
     )
     parser.add_argument(
         "--query-snippet-context",
@@ -420,6 +625,7 @@ def main() -> int:
         help="With --synthesize-report, number of additional high-score pairs to list as skipped",
     )
     args = parser.parse_args()
+    _apply_agent_presets(args)
 
     repo_root = Path(args.repo_root).resolve()
 

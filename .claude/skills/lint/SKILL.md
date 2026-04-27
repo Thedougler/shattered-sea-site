@@ -18,59 +18,74 @@ then ask which categories to auto-fix before making any changes.
 $ARGUMENTS — one of:
 - Empty — run a full lint pass across all 6 checks
 - A category name — run only that check: `orphans`, `dead_links`, `index`, `stale`, `contradictions`, `gaps`
-- `fix` — run full lint then auto-fix all safe issues (orphans, dead links, index gaps)
+- `fix` — run full lint then auto-fix only the safe structural issues supported by tooling
 - `report` — run full lint but produce only a report, do not fix anything
 
 ## Pre-Flight
 
 1. Confirm CLAUDE.md and index.md exist. If not, tell user to scaffold first.
-2. Read index.md in full — this is your map.
-3. Get the full file list in wiki/ using directory traversal.
+2. Read the detected index in full — `content/index.md`, `wiki/index.md`, or root `index.md` depending on layout.
+3. Let `wiki_guard` detect the knowledge layout before any manual traversal. Do not assume a `wiki/`-only structure.
 
 ## Agent-Optimized Execution Path (Use First)
 
 Before doing any manual scans, run the deterministic tooling pass:
 
 ```bash
-./.claude/bin/wiki_guard --lint-report --lint-format json
+./.claude/bin/wiki_guard --lint-agent
 ```
 
-Default behavior is already agent-optimized:
-- Writes the full report to `.claude/tmp/lint_report.json`
+Agent preset behavior:
+- Implies `--lint-report`
+- Defaults to JSON output written to `.claude/tmp/lint_report.json`
 - Prints a concise summary to stdout
-- Caps noisy entity gap payloads for token efficiency
+- Caps entity-gap payloads for token efficiency
+
+Execution pattern:
+- Read the stdout summary first.
+- Read `manual_required` and `safe_auto_fixable` from the JSON report before expanding into category payloads.
+- If one category is the only likely action surface, rerun with `--lint-category <category>` instead of reading the full payload.
+
+Use the lower-level flags only when you need to override the preset:
+
+```bash
+./.claude/bin/wiki_guard --lint-report --lint-format json --lint-max-gaps 25 --lint-max-gap-pages 5
+```
 
 Use an explicit path only when you need a non-default location:
 
 ```bash
-./.claude/bin/wiki_guard --lint-report --lint-format json --lint-output-file .claude/tmp/custom_lint_report.json
+./.claude/bin/wiki_guard --lint-agent --lint-output-file .claude/tmp/custom_lint_report.json
 ```
 
 If `$ARGUMENTS` specifies one category, run:
 
 ```bash
-./.claude/bin/wiki_guard --lint-report --lint-category <category> --lint-format json
+./.claude/bin/wiki_guard --lint-agent --lint-category <category>
 ```
 
 If `$ARGUMENTS` is `fix`, run:
 
 ```bash
-./.claude/bin/wiki_guard --lint-report --lint-safe-fix --lint-format json
+./.claude/bin/wiki_guard --lint-agent --lint-safe-fix
 ```
 
 If `$ARGUMENTS` is `report`, run:
 
 ```bash
-./.claude/bin/wiki_guard --lint-report --lint-format json
+./.claude/bin/wiki_guard --lint-agent
 ```
 
 Why this path is required for agents:
 - The CLI does high-volume deterministic scanning faster and more reliably than token-limited manual traversal.
 - It enforces report-first boundaries and safe-fix constraints.
 - It prevents false-clean outcomes from path/layout mismatches by using layout detection.
-- It caps low-value gap payloads and can write reports to disk, which reduces context waste and truncation failures.
+- It strips template-page noise and normalizes escaped wikilinks before reporting issues.
+- It caps low-value gap payloads and writes reports to disk, which reduces context waste and truncation failures.
 
 Manual scanning is fallback only when `wiki_guard` is unavailable or reports a parsing/runtime failure.
+
+If the report contains obvious template placeholders, malformed escaped targets, or layout mismatches, treat that as a tooling defect and invoke `wiki-tooling-fixer` rather than working around it manually.
 
 ---
 
@@ -267,8 +282,7 @@ After reporting, ask:
 Found <N> issues across <N> categories.
 
 Safe to auto-fix (no content changes, structure only):
-  ✅ Index gaps — add missing index entries from existing wiki files
-  ✅ Wiki ghost additions — add stubs for stub_worthy dead links
+  ✅ Index gaps — add missing index entries for existing wiki files (`wiki_ghosts` only)
 
 Requires judgment (ask before each):
   ⚠️  Orphan pages — I'll suggest link targets, you confirm each

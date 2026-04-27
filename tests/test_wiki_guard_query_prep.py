@@ -238,6 +238,67 @@ The Drowned Maw is dangerous.
     assert payload["primary"][0]["slug"] == "the_drowned_maw"
 
 
+def test_main_query_agent_writes_default_json_file(
+    tmp_path: Path, monkeypatch, capsys, wiki_guard
+) -> None:
+    write_required_root(tmp_path)
+    (tmp_path / "content").mkdir()
+    (tmp_path / "content/index.md").write_text(
+        """# Index: shattered_sea
+
+## Entity Catalog
+
+| Entity | Summary | Sources | Status | Updated |
+|--------|---------|---------|--------|---------|
+| [[the_drowned_maw]] | Planar fissure in the sea | 1 | active | 2026-04-26 |
+
+## Notes
+""",
+        encoding="utf-8",
+    )
+    write_page(
+        tmp_path / "content/entities/the_drowned_maw.md",
+        """---
+type: concept
+summary: Planar fissure in the sea
+source_count: 1
+status: active
+updated: 2026-04-26
+tags:
+  - planar
+---
+
+## Overview
+The Drowned Maw is dangerous.
+""",
+    )
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "wiki_guard.py",
+            "--repo-root",
+            str(tmp_path),
+            "--query-agent",
+            "--query-question",
+            "Drowned Maw",
+        ],
+    )
+
+    code = wiki_guard.main()
+    out = capsys.readouterr().out
+    report_path = tmp_path / ".claude/tmp/query_prep.json"
+    payload = json.loads(report_path.read_text(encoding="utf-8"))
+
+    assert code == 0
+    assert report_path.exists()
+    assert payload["question"] == "Drowned Maw"
+    assert payload["primary"][0]["slug"] == "the_drowned_maw"
+    assert "query prep written to .claude/tmp/query_prep.json" in out
+    assert "summary: type=" in out
+
+
 def test_main_query_prep_requires_question(tmp_path: Path, monkeypatch, wiki_guard) -> None:
     write_required_root(tmp_path)
     monkeypatch.setattr(

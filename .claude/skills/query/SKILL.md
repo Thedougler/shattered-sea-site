@@ -41,8 +41,19 @@ $ARGUMENTS — the user's question or query. Examples:
 Prefer one deterministic prep command over manual grep chains:
 
 ```bash
-./.claude/bin/wiki_guard --query-prep --query-question "<question>" --query-format json
+./.claude/bin/wiki_guard --query-agent --query-question "<question>"
 ```
+
+Agent preset behavior:
+- Implies `--query-prep`
+- Defaults to JSON output written to `.claude/tmp/query_prep.json`
+- Prints a concise summary to stdout
+
+Execution pattern:
+- Read the stdout summary first.
+- Read `.claude/tmp/query_prep.json` before deciding whether to widen scope or add optional flags.
+- If the candidate set is obviously too narrow, rerun with `--query-top-k <N>`.
+- If the query is index-only or public-filtered, add `--query-fast` or `--query-public-only` to the same preset command.
 
 Add flags when needed:
 
@@ -50,6 +61,12 @@ Add flags when needed:
 - visibility filter: `--query-public-only`
 - wider candidate set: `--query-top-k 8`
 - richer snippets: `--query-snippet-context 3 --query-max-snippets 3`
+
+Use the lower-level flags only when you need to override the preset path explicitly:
+
+```bash
+./.claude/bin/wiki_guard --query-prep --query-question "<question>" --query-format json --query-output-file .claude/tmp/custom_query_prep.json
+```
 
 Use manual index/frontmatter grep only if `wiki_guard` is unavailable or fails.
 
@@ -86,7 +103,7 @@ Parse the question to determine:
 
 ### Phase 2 — Index-Driven Navigation
 
-Use `wiki_guard --query-prep` output as the canonical candidate set. It already does index/frontmatter
+Use `wiki_guard --query-agent` output as the canonical candidate set. It already does index/frontmatter
 ranking, link expansion, and snippet extraction without opening pages in the agent context.
 
 If fallback is required (tool unavailable), read index and build candidates manually without loading
@@ -223,7 +240,7 @@ boundaries are the answer's epistemic boundaries.
 Log every query via `wiki_guard` instead of manual file appends:
 
 ```bash
-./.claude/bin/wiki_guard --query-prep --query-question "<question>" --query-format json --query-log
+./.claude/bin/wiki_guard --query-agent --query-question "<question>" --query-log
 ```
 
 Set explicit flags when needed:

@@ -8,6 +8,18 @@ from .knowledge_layout import detect_knowledge_layout
 from .utils import levenshtein_distance, parse_frontmatter, parse_iso_date
 
 
+def _is_template_page(path: Path, page_root: Path) -> bool:
+    parts = path.relative_to(page_root).parts
+    return any(part in {"templates", "_templates"} for part in parts)
+
+
+def _normalize_wikilink_target(target: str) -> str:
+    normalized = target.strip()
+    if normalized.endswith("\\"):
+        normalized = normalized[:-1]
+    return normalized
+
+
 def read_index_entries(repo_root: Path) -> dict[str, str]:
     layout = detect_knowledge_layout(repo_root)
     if layout is None or not layout.index_path.exists():
@@ -35,13 +47,15 @@ def build_page_inventory(repo_root: Path) -> dict[str, dict[str, object]]:
     for path in sorted(layout.page_root.rglob("*.md")):
         if path.parent == layout.page_root and path.name in root_special_files:
             continue
+        if _is_template_page(path, layout.page_root):
+            continue
 
         slug = path.stem
         text = path.read_text(encoding="utf-8")
         frontmatter = parse_frontmatter(text) or {}
         links: list[str] = []
         for link in WIKILINK_RE.findall(text):
-            target = link.split("/")[-1].strip()
+            target = _normalize_wikilink_target(link.split("/")[-1])
             if target:
                 links.append(target)
 

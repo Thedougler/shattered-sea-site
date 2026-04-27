@@ -291,3 +291,37 @@ def test_main_ingest_report_fail_on_pending_returns_zero_when_clean(
     code = wiki_guard.main()
 
     assert code == 0
+
+
+def test_main_ingest_report_writes_output_file(tmp_path: Path, monkeypatch, capsys, wiki_guard) -> None:
+    raw_dir = tmp_path / "raw"
+    raw_dir.mkdir(parents=True)
+    (raw_dir / "pending.md").write_text("hello\n", encoding="utf-8")
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "wiki_guard.py",
+            "--repo-root",
+            str(tmp_path),
+            "--ingest-report",
+            "--pending-only",
+            "--format",
+            "json",
+            "--ingest-output-file",
+            ".claude/tmp/ingest_report.json",
+        ],
+    )
+
+    code = wiki_guard.main()
+    out = capsys.readouterr().out
+    report_path = tmp_path / ".claude/tmp/ingest_report.json"
+    payload = json.loads(report_path.read_text(encoding="utf-8"))
+
+    assert code == 0
+    assert report_path.exists()
+    assert payload["summary"]["pending_sources"] == 1
+    assert payload["summary"]["next_source"] == "raw/pending.md"
+    assert "ingest report written to .claude/tmp/ingest_report.json" in out
+    assert "summary: total=1 pending=1" in out

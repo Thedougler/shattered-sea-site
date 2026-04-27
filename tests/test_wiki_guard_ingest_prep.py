@@ -118,3 +118,38 @@ def test_main_ingest_prep_missing_source_returns_non_zero(
     code = wiki_guard.main()
 
     assert code == 2
+
+
+def test_main_ingest_agent_writes_default_json_file(
+    tmp_path: Path, monkeypatch, capsys, wiki_guard
+) -> None:
+    raw_dir = tmp_path / "raw"
+    raw_dir.mkdir(parents=True)
+    source_path = raw_dir / "topic.md"
+    source_path.write_text("hello [[The-Dravosi-Crown]]\n", encoding="utf-8")
+    _write_content_index(tmp_path)
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "wiki_guard.py",
+            "--repo-root",
+            str(tmp_path),
+            "--ingest-agent",
+            "--source",
+            "raw/topic.md",
+        ],
+    )
+
+    code = wiki_guard.main()
+    out = capsys.readouterr().out
+    report_path = tmp_path / ".claude/tmp/ingest_prep.json"
+    payload = json.loads(report_path.read_text(encoding="utf-8"))
+
+    assert code == 0
+    assert report_path.exists()
+    assert payload["ok"] is True
+    assert payload["source_path"] == "raw/topic.md"
+    assert "ingest prep written to .claude/tmp/ingest_prep.json" in out
+    assert "summary: source=raw/topic.md" in out

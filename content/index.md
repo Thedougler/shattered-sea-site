@@ -67,6 +67,11 @@
 | [[jean_claude_tabarnack]] | Season 1 party member | 1 | draft | 2026-04-26 |
 | [[crisdalynn_khinriss]] | Season 1 party member | 1 | draft | 2026-04-26 |
 | [[coralyra_dranra]] | Joins party in Season 2 | 1 | draft | 2026-04-26 |
+| [[bard]] | D&D 5e class (2024 PHB); charisma full caster with Bardic Inspiration and Expertise | 1 | draft | 2026-04-27 |
+| [[college_of_valor]] | Bard subclass (2024 PHB); martial weapons and armor proficiency | 1 | draft | 2026-04-27 |
+| [[college_of_dance]] | Bard subclass (2024 PHB); movement and mobility focus | 1 | draft | 2026-04-27 |
+| [[college_of_glamour]] | Bard subclass (2024 PHB); charm and illusion focus | 1 | draft | 2026-04-27 |
+| [[college_of_lore]] | Bard subclass (2024 PHB); knowledge and versatility focus | 1 | draft | 2026-04-27 |
 
 ## Notes
 

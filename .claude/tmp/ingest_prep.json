@@ -1,0 +1,18 @@
+{
+  "ok": true,
+  "source_path": "raw/class/Bard.md",
+  "knowledge_root": "content",
+  "source_type": "document",
+  "size_bytes": 1787,
+  "content_hash": "sha256:cf34b528a156d7c7f39595c61ac05a2108a0c0868a03c073d1eb29194a05c45a",
+  "ingest_status": "new",
+  "last_ingested": null,
+  "suggested_entity_slug": "bard",
+  "wikilinks": {
+    "total_unique": 1,
+    "existing_entities": [],
+    "unresolved_entities": [
+      "college_of_valor"
+    ]
+  }
+}
