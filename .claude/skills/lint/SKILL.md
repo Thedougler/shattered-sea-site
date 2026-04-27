@@ -9,6 +9,8 @@ description: >
 
 # LLM-Wiki Lint Skill
 
+> **Prerequisite:** Load the `llm-wiki` skill before this one. Vault layout, CLI path, file naming, and core principles are defined there — not repeated here.
+
 **Critical constraint: Report first. Never silently fix anything. Always show findings and
 ask before making any changes.**
 
@@ -20,9 +22,9 @@ traverse the wiki.
 
 | $ARGUMENTS | Command |
 |---|---|
-| (empty) or `report` | `./.claude/bin/wiki_guard --lint-agent` |
-| `<category>` | `./.claude/bin/wiki_guard --lint-agent --lint-category <category>` |
-| `fix` | `./.claude/bin/wiki_guard --lint-agent --lint-safe-fix` |
+| (empty) or `report` | `python .claude/bin/wiki_guard.py --lint-agent` |
+| `<category>` | `python .claude/bin/wiki_guard.py --lint-agent --lint-category <category>` |
+| `fix` | `python .claude/bin/wiki_guard.py --lint-agent --lint-safe-fix` |
 
 Valid categories: `orphans`, `dead_links`, `index`, `stale`, `contradictions`, `gaps`
 
@@ -31,11 +33,8 @@ Override defaults only when needed:
 - More gap results: add `--lint-max-gaps 25 --lint-max-gap-pages 5`
 - Raw flags without preset: `--lint-report --lint-format json`
 
-**Pre-flight**: Confirm `CLAUDE.md` exists. If not, tell the user to scaffold first.
-Layout detection and index reading are handled by the CLI.
-
-**If `wiki_guard` is unavailable or exits with a parse/runtime error**, invoke
-`wiki-tooling-fixer` rather than falling back to manual traversal.
+**If `wiki_guard` exits with a parse/runtime error**, invoke `wiki-tooling-fixer` rather
+than falling back to manual traversal.
 
 ## Step 2 — Read the Report
 
