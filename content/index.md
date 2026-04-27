@@ -78,6 +78,7 @@
 | [[vaka]] | Loose community of Grung defectors and freed slaves at Port Tidefall; built over 8 years by Félix Aho | 1 | draft | 2026-04-27 |
 | [[nona_black_jaw]] | Rattkin matriarch and Tangle elder of the Warren; Black-Jaw Run head; Perrin's grandmother; does not know the Vestra sank | 1 | draft | 2026-04-27 |
 | [[rattkin]] | Small humanoid species; three varieties (Black/Brown/Fancy); oldest port presence in the Sea; organized into Runs and Holds via the Passage | 2 | active | 2026-04-27 |
+| [[grung]] | Brilliantly colored amphibious Small humanoid; skin color = caste at birth; six castes Gold→Green; daily water immersion required; life span ~30 years | 1 | active | 2026-04-27 |
 
 ## Notes
 

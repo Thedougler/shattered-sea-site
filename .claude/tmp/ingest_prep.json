@@ -1,21 +1,21 @@
 {
   "ok": true,
-  "source_path": "raw/species/Rattkin.md",
+  "source_path": "raw/species/Grung.md",
   "knowledge_root": "content",
   "source_type": "document",
-  "size_bytes": 6360,
-  "content_hash": "sha256:8c3e388728f9a81ce630616d843e937ee81a06f1d431a785d39702b20b4c0a5f",
+  "size_bytes": 5260,
+  "content_hash": "sha256:7f0dc584aa82f44a76652f2a300db5f47dab6ec3e1547530c9e9c66598c10982",
   "ingest_status": "new",
   "last_ingested": null,
-  "suggested_entity_slug": "rattkin",
+  "suggested_entity_slug": "grung",
   "wikilinks": {
-    "total_unique": 4,
+    "total_unique": 3,
     "existing_entities": [
-      "calveno",
-      "perrin_black_jaw",
-      "the_passage",
-      "the_warren"
+      "jean_claude_tabarnack",
+      "the_grung"
     ],
-    "unresolved_entities": []
+    "unresolved_entities": [
+      "verdant_teeth"
+    ]
   }
 }
