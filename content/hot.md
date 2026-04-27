@@ -9,7 +9,8 @@ updated: 2026-04-27
 
 ## Recent Activity
 
-- [2026-04-27] INGEST `raw/npcs/Felix-Aho.md` — Félix Aho and Vaka created; the_grung gains Gold caste division intelligence (unified front is a performance); Port Tidefall gains community presence.
+- [2026-04-27] INGEST `raw/npcs/Master-Kyzil.md` — Kyzil fully expanded: barn owl appearance, "Who." voice, dreidel detail, Port Tidefall presence, withheld truth about surviving.
+- [2026-04-27] INGEST `raw/npcs/Felix-Aho.md` — Félix Aho and Vaka created; the_grung gains Gold caste division intelligence.
 - [2026-04-27] INGEST `raw/factions/Sentinels-Of-The-Eyrie.md` — Sentinels fully expanded; Soul Incarnate secret introduced.
 - [2026-04-27] INGEST `raw/conditions/Blinded.md` — 1 new reference page: Blinded condition.
 - [2026-04-27] INGEST `raw/class/Bard.md` — 5 new reference pages: Bard class + 4 subclass stubs.

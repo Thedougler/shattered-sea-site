@@ -1,25 +1,22 @@
 {
   "ok": true,
-  "source_path": "raw/npcs/Felix-Aho.md",
+  "source_path": "raw/npcs/Master-Kyzil.md",
   "knowledge_root": "content",
   "source_type": "document",
-  "size_bytes": 6681,
-  "content_hash": "sha256:e4a437d757cbd60babdc656da693cc153a04f4b21afd8ff8a57d170d020184bc",
+  "size_bytes": 4924,
+  "content_hash": "sha256:e8488edb864bd6d576e4ef91edee6f450de7735cce93e8e13d8e700ed385f8d5",
   "ingest_status": "new",
   "last_ingested": null,
-  "suggested_entity_slug": "felix_aho",
+  "suggested_entity_slug": "master_kyzil",
   "wikilinks": {
-    "total_unique": 7,
+    "total_unique": 5,
     "existing_entities": [
-      "jean_claude_tabarnack",
+      "crisdalynn_khinriss",
       "port_tidefall",
-      "the_grung"
+      "sentinels_of_the_eyrie",
+      "the_drowned_maw",
+      "the_high_eyrie"
     ],
-    "unresolved_entities": [
-      "fare_ia",
-      "grung",
-      "ia_miti",
-      "vaka"
-    ]
+    "unresolved_entities": []
   }
 }

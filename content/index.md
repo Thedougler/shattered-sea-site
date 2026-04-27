@@ -23,7 +23,7 @@
 | [[hcs_surety]] | Barnaby Rook's ship; flags the Saltwright for inspection at Session 1 | 1 | draft | 2026-04-26 |
 | [[salvaged_antheri_plate]] | Fitted Antheri plate commissioned by Beaumont Sel from Catarina to cover a cannonball breach in his shell | 1 | draft | 2026-04-26 |
 | [[clockwork_owl_familiar]] | Catarina DaVirelli's most widely circulated Antheri-derived creation; ubiquitous across the Sea | 1 | draft | 2026-04-26 |
-| [[master_kyzil]] | Senior Sentinel who vouched for Crisdalynn's readiness, then approved her banishment | 1 | draft | 2026-04-26 |
+| [[master_kyzil]] | Senior Sentinel master; barn-owl Aarakocra at Port Tidefall; gave Crisdalynn his dreidel; tracked her there after the sinking; has not told her surviving counts | 3 | active | 2026-04-27 |
 | [[pell]] | Gnome slave of the Grung tortured to death as reprisal for Jean-Claude's desertion plans | 1 | draft | 2026-04-26 |
 | [[vestra]] | Perrin Black-Jaw's ship; destroyed by Leviathan Day −4 near Keth-Naar | 1 | draft | 2026-04-26 |
 | [[the_grung]] | Grung clan controlling the Verdant Teeth; color-based hierarchy; Jean-Claude's clan | 1 | active | 2026-04-26 |
