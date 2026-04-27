@@ -10,6 +10,8 @@ description: >
 
 # LLM-Wiki Scaffold Skill
 
+> **Prerequisite:** Load the `llm-wiki` skill before this one. Vault layout, file naming conventions, and CLI reference are defined there.
+
 You are an autonomous librarian and knowledge architect. Your task is to scaffold a new
 LLM-wiki domain — a persistent, compounding knowledge base following the Karpathy pattern.
 
@@ -32,13 +34,13 @@ Scaffold the following structure at the target path:
 <domain_root>/
 ├── .env                          # Environment config (vault path, sources dir, QMD)
 ├── CLAUDE.md                     # Domain-level schema (primary agent config)
-├── index.md                      # Centralized entity catalog (agent reads this first)
-├── log.md                        # Append-only audit trail of all modifications
-├── hot.md                        # ~500-word semantic snapshot — updated after every major operation
 ├── raw/                          # IMMUTABLE source archive — agent READ ONLY
 │   └── assets/                   # Image attachments (referenced from raw docs)
 ├── archives/                     # Wiki snapshots for rebuild/restore operations
-├── wiki/                         # Agent-managed synthesized knowledge graph
+├── content/                      # Agent-managed synthesized knowledge graph
+│   ├── index.md                  # Centralized entity catalog (agent reads this first)
+│   ├── log.md                    # Append-only audit trail of all modifications
+│   ├── hot.md                    # ~500-word semantic snapshot — updated after every major op
 │   ├── concepts/                 # Ideas, theories, mental models
 │   ├── entities/                 # People, orgs, tools, projects
 │   ├── skills/                   # How-to knowledge, procedures
@@ -52,8 +54,8 @@ Scaffold the following structure at the target path:
 └── .claude/
     ├── rules/
     │   ├── ingest_rules.md       # Ingestion workflow — triggered on raw/* paths
-    │   ├── wiki_format_rules.md  # Formatting standards — triggered on wiki/* paths
-    │   └── lint_rules.md         # Linting protocol — triggered on index.md or wiki/*
+    │   ├── wiki_format_rules.md  # Formatting standards — triggered on content/* paths
+    │   └── lint_rules.md         # Linting protocol — triggered on index.md or content/*
     ├── memory/
     │   ├── MEMORY.md             # Hot cache of active decisions — read at session start
     │   └── archive/              # Archived decisions and deprecated patterns
@@ -73,7 +75,7 @@ Scaffold the following structure at the target path:
 ## Architecture
 - `raw/` — Immutable source archive. READ ONLY. Never modify, move, or delete files here.
 - `archives/` — Snapshots of the wiki taken before rebuild/restore operations. Never delete.
-- `wiki/` — Agent-managed knowledge graph. Pages live in category subdirectories:
+- `content/` — Agent-managed knowledge graph. Pages live in category subdirectories:
   - `concepts/` — Ideas, theories, mental models
   - `entities/` — People, orgs, tools, projects
   - `skills/` — How-to knowledge, procedures
@@ -81,63 +83,42 @@ Scaffold the following structure at the target path:
   - `synthesis/` — Cross-cutting analysis built from multiple sources
   - `journal/` — Timestamped observations and session logs
   - `projects/` — Per-project scoped knowledge (one subdir per project)
-- `index.md` — Master entity catalog. Read this first before any query or ingestion.
-- `log.md` — Append-only audit trail. Append after every ingestion; never edit prior entries.
-- `hot.md` — Semantic snapshot of recent activity (~500 words). Update after every major write.
+- `content/index.md` — Master entity catalog. Read this first before any query or ingestion.
+- `content/log.md` — Append-only audit trail. Append after every ingestion; never edit prior entries.
+- `content/hot.md` — Semantic snapshot of recent activity (~500 words). Update after every major write.
 - `.claude/rules/` — Modular rule files loaded contextually by file path.
 - `.claude/memory/` — Persistent session memory. Read `MEMORY.md` at every session start.
 
 ## Session Memory
 At the start of every session, read `.claude/memory/MEMORY.md` before doing anything else.
-Before context compression or session end, checkpoint any important decisions to `.claude/memory/`
-using the memory file types (user / feedback / project / reference). Use
-`/llm-wiki:persistent-memory-management` for the full protocol.
+Before context compression or session end, checkpoint any important decisions to `.claude/memory/`.
 
-## Core Commands
-- **Ingest**: `/llm-wiki:ingest [filename]` — Process a new document from raw/
-- **Query**: `/llm-wiki:query [question]` — Answer a question using the wiki
-- **Status**: `/llm-wiki:wiki-status` — See what's been ingested, what's pending, wiki health
-- **Update**: `/llm-wiki:wiki-update` — Sync current project's knowledge into the wiki
-- **Synthesize**: `/llm-wiki:wiki-synthesize` — Find and fill synthesis gaps across the wiki
-- **Lint**: `/llm-wiki:lint` — Health-check for orphans, dead links, contradictions
-- **Rebuild**: `/llm-wiki:wiki-rebuild` — Archive and rebuild from scratch, or restore
+## Core Skills
+- **Ingest**: `ingest` skill — Process a new document from raw/
+- **Query**: `query` skill — Answer a question using the wiki
+- **Status**: `wiki-status` skill — What's been ingested, what's pending, wiki health
+- **Synthesize**: `wiki-synthesize` skill — Find and fill synthesis gaps across the wiki
+- **Lint**: `lint` skill — Health-check for orphans, dead links, contradictions
 
-## Obsidian Tools
-These trigger automatically when the relevant context arises — no need to call them manually.
-- **`/llm-wiki:obsidian-markdown`** — Use when writing or editing any wiki page. Covers wikilinks, callouts, embeds, properties, and Obsidian-specific formatting rules.
-- **`/llm-wiki:obsidian-bases`** — Use when creating index, dashboard, or aggregation pages. Creates `.base` files for dynamic, frontmatter-driven views instead of static tables.
-- **`/llm-wiki:obsidian-cli`** — Use when interacting with a running Obsidian instance: reading, creating, appending, renaming, or searching notes via the `obsidian` CLI.
-- **`/llm-wiki:obsidian-automation`** — Use for multi-step vault operations: batch note creation, bulk property updates, post-ingest cleanup sequences.
-- **`/llm-wiki:obsidian-json-canvas`** — Use when creating or editing `.canvas` files: mind maps, flowcharts, and relationship diagrams embedded in synthesis pages.
-
-## Meta-Capabilities
-Use these when you hit a gap in what the plugin can do.
-- **`/llm-wiki:persistent-memory-management`** — Session continuity across context resets. Checkpointing, daily synthesis, and memory structure. Use at session start, before context compression, and end of day.
-- **`/llm-wiki:writing-plans`** — Write a comprehensive implementation plan before executing complex or multi-step vault operations. Plans are saved to `.claude/plans/`.
-- **`/llm-wiki:executing-plans`** — Execute a written plan task-by-task with verification at every step.
-- **`/llm-wiki:systematic-debugging`** — Root-cause-first debugging protocol for any vault error, broken link, or validation failure.
-- **`/llm-wiki:verification-before-completion`** — Gate function: run verification commands and read output before claiming any operation is complete.
-- **`/llm-wiki:context-fundamentals`** — Context engineering principles: attention budget, token positioning, progressive loading. Use when designing agent systems or optimizing how information is structured in context.
-- **`/llm-wiki:context-compression`** — Compression strategies for long-running wiki sessions. Use when sessions span large ingestion batches or approach context limits.
-- **`/llm-wiki:find-skills`** — Search the open agent skills ecosystem (`skills.sh`) for an existing skill when you need a capability this plugin doesn't cover. Check here before building anything from scratch.
-- **`/llm-wiki:skill-creator`** — Create and iteratively improve a new skill when `find-skills` turns up nothing. The full creation loop: draft → test → eval → refine.
+> Load the `llm-wiki` skill first before any wiki operation. It defines vault layout,
+> CLI reference, retrieval primitives, and core principles shared by all wiki skills.
 
 ## Absolute Constraints
 1. NEVER modify or delete any file in `raw/`. Read access only.
-2. ALWAYS read `index.md` before any ingestion or query — never traverse blindly.
+2. ALWAYS read `content/index.md` before any ingestion or query — never traverse blindly.
 3. ALWAYS use snake_case for ALL file names, directory names, and YAML keys.
 4. ALWAYS write valid YAML frontmatter at the top of every wiki entity page.
-5. ALWAYS append to `log.md` after every ingestion — never skip this step.
-6. NEVER flatten a wiki entity page. Each page covers exactly ONE concept.
-7. ALWAYS weave bidirectional wiki-links `[[entity_name]]` between related pages.
+5. NEVER flatten a wiki entity page. Each page covers exactly ONE concept.
+6. ALWAYS weave bidirectional wiki-links `[[entity_name]]` between related pages.
+7. ALWAYS commit after every write — the vault must be in a valid state before responding.
 
 ## Settings
-- File edits within `wiki/`, `index.md`, `log.md`, and `hot.md` are auto-approved.
+- File edits within `content/`, `.claude/memory/` are auto-approved.
 - All bash commands outside of `read`, `grep`, `find`, `cat`, and `ls` require confirmation.
 - Never run `rm`, `curl`, or any destructive or network command autonomously.
 ```
 
-### 2. index.md (domain root)
+### 2. content/index.md
 
 ```markdown
 # Index: <DOMAIN_NAME>
@@ -157,7 +138,7 @@ Use these when you hit a gap in what the plugin can do.
 - All entity filenames are snake_case with no spaces or hyphens
 ```
 
-### 3. log.md (domain root)
+### 3. content/log.md
 
 ```markdown
 # Audit Log: <DOMAIN_NAME>
@@ -176,7 +157,7 @@ Use these when you hit a gap in what the plugin can do.
 - No entities ingested yet.
 ```
 
-### 4. hot.md (domain root)
+### 4. content/hot.md
 
 ```markdown
 ---
@@ -294,13 +275,13 @@ Execute this protocol EXACTLY and in ORDER for every new raw document.
 
 ## Phase 4 — Wiki Creation (Novel Entities)
 7. For each `novel` entity:
-   a. Create `wiki/<entity_name_in_snake_case>.md` with full YAML frontmatter.
+   a. Create `content/<category>/<entity_name_in_snake_case>.md` with full YAML frontmatter.
    b. Write a dense, encyclopedic entity page (minimum 3 sections).
    c. Weave bidirectional wiki-links to all related existing entities.
-   d. Add the entity to `index.md` with a one-line summary.
+   d. Add the entity to `content/index.md` with a one-line summary.
 
 ## Phase 5 — Audit Log
-8. Append a timestamped entry to `log.md`:
+8. Append a timestamped entry to `content/log.md`:
    - Source file processed
    - Entities updated (list)
    - Entities created (list)
@@ -331,7 +312,7 @@ updated: <YYYY-MM-DD>
 ```markdown
 ---
 paths:
-  - wiki/**
+  - content/**
 description: Formatting standards — active when writing or editing wiki entity pages
 ---
 
@@ -391,8 +372,8 @@ Flag this section clearly for human review.
 ```markdown
 ---
 paths:
-  - wiki/**
-  - index.md
+  - content/**
+  - content/index.md
 description: Linting rules — active during health-check operations
 ---
 
@@ -401,21 +382,21 @@ description: Linting rules — active during health-check operations
 Execute a complete wiki health-check in this order. Report all findings before making any fixes.
 
 ## Step 1 — Orphan Detection
-- Scan every file in wiki/
-- For each file, check if any other wiki page contains `[[<this_entity>]]`
+- Scan every file in `content/`
+- For each file, check if any other page contains `[[<this_entity>]]`
 - Flag any page with zero inbound links as an ORPHAN
 - Orphans should be linked to the most semantically related existing pages
 
 ## Step 2 — Dead Link Detection
-- Scan every wiki page for `[[wiki_links]]`
-- Verify each linked filename exists in wiki/
+- Scan every content page for `[[wiki_links]]`
+- Verify each linked filename exists in `content/`
 - Flag any link pointing to a non-existent file as a DEAD LINK
 - Create stubs for dead links pointing to entities worth having
 
 ## Step 3 — Index Audit
-- Compare index.md entries against actual files in wiki/
-- Flag: entities in index.md with no corresponding wiki file
-- Flag: wiki files with no index.md entry (add missing entries)
+- Compare `content/index.md` entries against actual files in `content/`
+- Flag: entities in index.md with no corresponding file
+- Flag: files with no index.md entry (add missing entries)
 
 ## Step 4 — Staleness Detection
 - Review `updated` dates across all wiki pages
@@ -478,15 +459,15 @@ When the scaffold skill is invoked:
    Directories to create:
    - `raw/assets/`
    - `archives/`
-   - `wiki/concepts/`, `wiki/entities/`, `wiki/skills/`, `wiki/references/`,
-     `wiki/synthesis/`, `wiki/journal/`, `wiki/projects/`
+   - `content/concepts/`, `content/entities/`, `content/skills/`, `content/references/`,
+     `content/synthesis/`, `content/journal/`, `content/projects/`
    - `.obsidian/`
    - `.claude/rules/`
    - `.claude/memory/archive/`
    - `.claude/plans/`
 
-   Files to create: `CLAUDE.md`, `index.md`, `log.md`, `hot.md`, `.obsidian/app.json`,
-   `.obsidian/appearance.json`, `.claude/rules/ingest_rules.md`,
+   Files to create: `CLAUDE.md`, `content/index.md`, `content/log.md`, `content/hot.md`,
+   `.obsidian/app.json`, `.obsidian/appearance.json`, `.claude/rules/ingest_rules.md`,
    `.claude/rules/wiki_format_rules.md`, `.claude/rules/lint_rules.md`
 
    Create `.claude/memory/MEMORY.md` with this initial content:
@@ -510,7 +491,7 @@ When the scaffold skill is invoked:
 
 6. **Verify setup** — Run a sanity check and report results:
    - [ ] Vault directory exists with all subdirectories
-   - [ ] `index.md`, `log.md`, `hot.md`, `CLAUDE.md` exist at vault root
+   - [ ] `content/index.md`, `content/log.md`, `content/hot.md`, `CLAUDE.md` exist
    - [ ] `.env` has `OBSIDIAN_VAULT_PATH` set
    - [ ] `.obsidian/` directory exists
    - [ ] `.claude/rules/` has all three rule files
@@ -524,10 +505,10 @@ When the scaffold skill is invoked:
    Structure created:
      raw/          ← Drop source documents here. READ ONLY to the agent.
      archives/     ← Wiki snapshots for rebuild/restore. Never delete.
-     wiki/         ← Agent-managed knowledge graph (concepts, entities, skills, ...).
-     index.md      ← Master catalog. Agent reads this first.
-     log.md        ← Audit trail. Append-only.
-     hot.md        ← Semantic snapshot of recent activity. Update after major writes.
+     content/      ← Agent-managed knowledge graph (concepts, entities, skills, ...).
+       index.md    ← Master catalog. Agent reads this first.
+       log.md      ← Audit trail. Append-only.
+       hot.md      ← Semantic snapshot of recent activity. Update after major writes.
      CLAUDE.md     ← Domain schema. Edit to refine agent behavior.
      .env          ← Environment config. Update OBSIDIAN_SOURCES_DIR to add source paths.
      .obsidian/    ← Vault recognised by Obsidian. Open with: File → Open Vault.
@@ -539,38 +520,25 @@ When the scaffold skill is invoked:
        MEMORY.md     ← Read at every session start.
        archive/      ← Archived decisions (never auto-delete).
 
-   Available skills:
-     /llm-wiki:ingest            — Process raw documents into the knowledge graph
-     /llm-wiki:query             — Answer questions using the wiki
-     /llm-wiki:wiki-status       — Delta report: what's pending, wiki health, graph insights
-     /llm-wiki:wiki-update       — Sync current project's knowledge into the wiki
-     /llm-wiki:wiki-synthesize   — Find co-occurring concepts and create synthesis pages
-     /llm-wiki:lint              — Health-check for orphans, dead links, contradictions
-     /llm-wiki:wiki-rebuild      — Archive and rebuild from scratch, or restore from archive
-     /llm-wiki:obsidian-markdown      — Obsidian formatting reference (auto-triggered on wiki edits)
-     /llm-wiki:obsidian-bases         — Create dynamic .base views (auto-triggered for dashboards)
-     /llm-wiki:obsidian-cli           — Interact with a running Obsidian instance
-     /llm-wiki:obsidian-automation    — Batch vault operations and automation sequences
-     /llm-wiki:obsidian-json-canvas   — Create and edit .canvas visual diagrams
-     /llm-wiki:defuddle               — Extract clean markdown from a URL for use as a raw source
-     /llm-wiki:humanize-writing       — Ensure query answers and synthesis pages read as human prose
-
-   Process skills (always available for complex work):
-     /llm-wiki:persistent-memory-management   — Session continuity and memory checkpointing
-     /llm-wiki:context-compression            — Compression strategies for long ingest sessions
-     /llm-wiki:writing-plans                  — Plan complex operations before executing
-     /llm-wiki:executing-plans                — Execute a written plan step-by-step
-     /llm-wiki:systematic-debugging           — Root-cause debugging for any vault error
-     /llm-wiki:verification-before-completion — Verify before claiming anything is done
-     /llm-wiki:find-skills    — Search skills.sh for an existing skill
-     /llm-wiki:skill-creator  — Build and eval a new skill from scratch
+   Available skills (load llm-wiki first, then the operation skill):
+     llm-wiki      ← LOAD FIRST before any wiki operation
+     ingest        ← Process raw documents into the knowledge graph
+     query         ← Answer questions using the wiki
+     wiki-status   ← Delta report: what's pending, wiki health, graph insights
+     wiki-synthesize ← Find co-occurring concepts and create synthesis pages
+     lint          ← Health-check for orphans, dead links, contradictions
+     obsidian-markdown ← Formatting reference (load when writing wiki pages)
+     obsidian-bases    ← Create dynamic .base views
+     obsidian-cli      ← Interact with a running Obsidian instance
+     obsidian-json-canvas ← Create and edit .canvas visual diagrams
+     defuddle          ← Extract clean markdown from a URL for use as a raw source
 
    Next steps:
      1. Open the vault in Obsidian (File → Open Vault → select this directory)
      2. Install recommended community plugins (Settings → Community plugins)
      3. Drop a source document into raw/
-     4. Run /llm-wiki:ingest <filename>
+     4. Load the llm-wiki skill, then the ingest skill, then ingest your first document
    ```
 
-8. Do NOT create any wiki entity pages during scaffolding. The wiki/ folder starts empty.
-   All entities are created through the ingest workflow.
+8. Do NOT create any content pages during scaffolding. The `content/` folder starts empty
+   (except index.md, log.md, hot.md). All entities are created through the ingest workflow.
