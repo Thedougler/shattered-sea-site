@@ -15,6 +15,8 @@ description: >
 
 # LLM-Wiki Query Skill
 
+> **Prerequisite:** Load the `llm-wiki` skill before this one. Vault layout, CLI path, file naming, retrieval primitives, and core principles are defined there — not repeated here.
+
 Every claim traces back to a wiki page, which traces back to a raw source. Do not supplement
 with training knowledge. If the wiki can't answer, say so and recommend a source to ingest.
 
@@ -22,12 +24,11 @@ with training knowledge. If the wiki can't answer, say so and recommend a source
 
 ## Pre-Flight
 
-1. Confirm `CLAUDE.md` and `content/` (or `wiki/`) exist. Resolve `index_path`, `hot_path`, `log_path`.
-2. Check `hot_path` first — if it already answers the question, skip to Synthesis.
-3. **Index-only mode** (triggered by "quick answer", "just scan", "don't read the pages", "fast lookup"):
+1. Check `content/hot.md` first — if it already answers the question, skip to Synthesis.
+2. **Index-only mode** (triggered by "quick answer", "just scan", "don't read the pages", "fast lookup"):
    answer from `summary:` fields and `index.md` descriptions only, skip to Synthesis, label the answer:
    > *(index-only — facts from page summaries; may miss nuance)*
-4. **Filtered mode** (triggered by "public only", "user-facing", "exclude internal"):
+3. **Filtered mode** (triggered by "public only", "user-facing", "exclude internal"):
    skip any page tagged `visibility/internal` or `visibility/pii`; don't mention excluded pages exist.
 
 ---
@@ -38,7 +39,7 @@ Run both searches simultaneously (they're fast and complementary):
 
 **A. Structural search** (index + frontmatter ranking):
 ```bash
-./.claude/bin/wiki_guard --query-agent --query-question "<question>"
+python .claude/bin/wiki_guard.py --query-agent --query-question "<question>"
 # reads stdout summary; then reads .claude/tmp/query_prep.json for the ranked file list
 # add --query-fast for index-only mode; --query-public-only for filtered mode
 # add --query-top-k 8 if the initial candidate set is too narrow
@@ -69,7 +70,7 @@ mcp__qmd__query:                         # parallel: check raw/ sources too
 `{"rel_path": str, "score": float, "snippet": str}` objects, then rerun wiki_guard with the
 merge flag. This produces a single unified ranked payload:
 ```bash
-./.claude/bin/wiki_guard --query-agent --query-question "<question>" \
+python .claude/bin/wiki_guard.py --query-agent --query-question "<question>" \
   --query-merge-qmd .claude/tmp/qmd_results.json
 ```
 The updated `query_prep.json` has `qmd_merged: true`, boosted scores, `qmd_snippets` per page,
@@ -77,23 +78,16 @@ and a `read_strategy` per candidate (`summary_only` / `grep` / `full_read`).
 
 If QMD snippets already fully answer the question, skip Step 2 entirely and go straight to Synthesis.
 
-**Fallback** (if `wiki_guard` unavailable): grep frontmatter only — `^(title|tags|aliases|summary):` scoped to `content/**/*.md`. Rank: exact title/alias → tag match → summary contains term → index.md entry contains term.
+**Fallback** (if `wiki_guard` unavailable): use `grep_search` on frontmatter fields `^(title|tags|aliases|summary):` scoped to `content/**`. Rank: exact title/alias → tag match → summary contains term → index.md entry contains term.
 
 ---
 
 ## Step 2 — Entity Page Reading
 
-Use the cheapest primitive that answers the question; escalate only when it falls short:
-
-| Need | Method | Cost |
-|---|---|---|
-| Existence / category / tags | `index.md` (already read) | Free |
-| 1–2 sentence preview | `summary:` frontmatter field | Cheap |
-| Specific claim or section | `Grep -A <n> -B <n> "<term>" <file>` | Medium |
-| Full page | `Read <file>` | Expensive — last resort |
-
-Read primary candidates first, then secondaries (pages linked from primaries) only if needed.
-A 500-line page opened for 15 lines is 485 wasted tokens.
+Follow the retrieval primitives from `llm-wiki`. For query specifically:
+- Read primary candidates first; read secondaries (pages linked from primaries) only if needed.
+- Prefer `read_file` with startLine/endLine on frontmatter before reading the full body.
+- Read multiple independent candidates in parallel in the same tool turn.
 
 As you read, note per-page:
 - `source_count` — epistemic weight
@@ -130,7 +124,7 @@ Write as dense human prose — no hollow openers, no filler, mix sentence length
 
 **Log** (always):
 ```bash
-./.claude/bin/wiki_guard --query-agent --query-question "<question>" --query-log
+python .claude/bin/wiki_guard.py --query-agent --query-question "<question>" --query-log
 # add --query-result-pages <N> or --query-escalated as needed
 ```
 
@@ -170,7 +164,7 @@ section naming which pages were combined and why. Add to `index.md`.
 
 Then log the filing:
 ```bash
-./.claude/bin/wiki_guard --query-filed \
+python .claude/bin/wiki_guard.py --query-filed \
   --query-filed-page "content/synthesis/<name>.md" \
   --query-filed-from-query "<question>"
 ```
