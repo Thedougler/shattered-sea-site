@@ -12,19 +12,16 @@ description: >
 
 # Wiki Status — Audit & Delta
 
+> **Prerequisite:** Load the `llm-wiki` skill before this one. Vault layout, CLI path, and core principles are defined there — not repeated here.
+
 You are computing the current state of the wiki: what's been ingested, what's new since last ingest, and what the delta looks like. This helps the user decide whether to append (ingest the delta) or rebuild (archive and reprocess everything).
-
-## Before You Start
-
-1. Read `.env` to get `OBSIDIAN_VAULT_PATH`, `OBSIDIAN_SOURCES_DIR`, `CLAUDE_HISTORY_PATH`
-2. Read `.manifest.json` at the vault root — this is the ingest tracking ledger
 
 ## Tool-First Fast Path (default)
 
 Prefer one deterministic status command over manual manifest and filesystem traversal:
 
 ```bash
-./.claude/bin/wiki_guard --status-agent
+python .claude/bin/wiki_guard.py --status-agent
 ```
 
 Agent preset behavior:
@@ -36,80 +33,15 @@ Execution pattern:
 - Read the stdout summary first.
 - Read `.claude/tmp/status_report.json` before expanding into individual source rows.
 - If the user only cares about ingestable work, rerun with `--pending-only`.
-- Use manual manifest/source traversal only if `wiki_guard` is unavailable or fails.
+- **If `wiki_guard` errors or produces unexpected output**, stop and invoke `wiki-tooling-fixer` — do not fall back to manual traversal.
 
 ## The Manifest
 
-The manifest lives at `$OBSIDIAN_VAULT_PATH/.manifest.json`. It tracks every source file that has been ingested. If it doesn't exist, this is a fresh vault with nothing ingested.
-
-```json
-{
-  "version": 1,
-  "last_updated": "2026-04-06T10:30:00Z",
-  "sources": {
-    "/absolute/path/to/file.md": {
-      "ingested_at": "2026-04-06T10:30:00Z",
-      "size_bytes": 4523,
-      "modified_at": "2026-04-05T08:00:00Z",
-      "source_type": "document",
-      "project": null,
-      "pages_created": ["concepts/transformers.md"],
-      "pages_updated": ["entities/vaswani.md"]
-    },
-    "~/.claude/projects/-Users-name-my-app/abc123.jsonl": {
-      "ingested_at": "2026-04-06T11:00:00Z",
-      "size_bytes": 128000,
-      "modified_at": "2026-04-06T09:00:00Z",
-      "source_type": "claude_conversation",
-      "project": "my-app",
-      "pages_created": ["entities/my-app.md"],
-      "pages_updated": ["skills/react-debugging.md"]
-    }
-  },
-  "projects": {
-    "my-app": {
-      "source_path": "~/.claude/projects/-Users-name-my-app",
-      "vault_path": "projects/my-app",
-      "last_ingested": "2026-04-06T11:00:00Z",
-      "conversations_ingested": 5,
-      "conversations_total": 8,
-      "memory_files_ingested": 3
-    }
-  },
-  "stats": {
-    "total_sources_ingested": 42,
-    "total_pages": 87,
-    "total_projects": 6,
-    "last_full_rebuild": null
-  }
-}
-```
+The manifest lives at `.manifest.json` (vault root). `wiki_guard` reads and writes it automatically. If it doesn't exist, this is a fresh vault with nothing ingested — report everything as new and recommend a full ingest.
 
 ## Step 1: Scan Current Sources
 
-Use the `wiki_guard --status-agent` report as the canonical inventory/delta payload. The tool already
-resolves env paths, scans source roots, compares against the manifest, and computes the recommendation.
-
-If fallback is required, perform the manual scan below.
-
-Build an inventory of everything available to ingest right now:
-
-### Documents (from `OBSIDIAN_SOURCES_DIR`)
-```
-Glob each directory in OBSIDIAN_SOURCES_DIR for all text files
-Record: path, size, modification time
-```
-
-### Claude History (from `CLAUDE_HISTORY_PATH`)
-```
-Glob: ~/.claude/projects/*/          → project directories
-Glob: ~/.claude/projects/*/*.jsonl   → conversation files
-Glob: ~/.claude/projects/*/memory/*.md → memory files
-Record: path, size, modification time, parent project
-```
-
-### Any other sources the user has pointed at previously
-Check the manifest for source paths outside the standard directories.
+Use `python .claude/bin/wiki_guard.py --status-agent` as the canonical inventory/delta payload. The tool resolves env paths, scans source roots, compares against the manifest, computes the recommendation, and handles Claude history automatically.
 
 ## Step 2: Compute the Delta
 
@@ -132,12 +64,7 @@ For Claude history specifically, also compute:
 
 ## Step 3: Report the Status
 
-**Visibility tally (before rendering the report):** Grep frontmatter across all vault `.md` pages for `visibility/internal` and `visibility/pii` tag values. Count:
-- `public` = pages with `visibility/public` tag **or** no `visibility/` tag at all
-- `internal` = pages with `visibility/internal` tag
-- `pii` = pages with `visibility/pii` tag
-
-Include this in the Overview section as `Page visibility: N public · M internal · K pii`. Skip the line if all pages are untagged (fully public vault).
+**Visibility tally:** Included in the `wiki_guard` JSON output. If running manually, grep frontmatter across `content/**/*.md` for `visibility/internal` and `visibility/pii` tag values. Include in Overview as `Page visibility: N public · M internal · K pii`. Skip if all pages are untagged.
 
 Present a clear summary:
 
@@ -311,7 +238,7 @@ Write the result to `_insights.md` at the vault root. Overwrite freely — it's 
 <!-- GRAPH_SNAPSHOT: {"nodes":["concepts/foo","entities/bar"],"edges":[["concepts/foo","entities/bar"]]} -->
 ```
 
-After writing the file, append to `log.md`:
+After writing the file, append to `content/log.md`:
 ```
 - [TIMESTAMP] STATUS_INSIGHTS anchors=10 bridges=N cohesion_checked=T surprising=5 questions=7 delta="+N pages +M links"
 ```
@@ -323,7 +250,6 @@ After writing the file, append to `log.md`:
 
 ## Notes
 
+- This skill only reads and reports — it doesn't modify anything (except writing `_insights.md` at vault root in insights mode, which is fully regenerable)
+- The actual ingest work is done by the `ingest` skill, which updates `.manifest.json` after it finishes
 - If the manifest doesn't exist, report everything as "new" and recommend a full ingest
-- This skill only reads and reports — it doesn't modify anything (except writing `_insights.md` in insights mode, which is regenerable)
-- The actual ingest work is done by `/llm-wiki:ingest`
-- That skill is responsible for updating `.manifest.json` after it finishes
