@@ -1,0 +1,35 @@
+---
+domain: shattered_sea
+type: reference
+summary: Bard subclass (2024 PHB); knowledge and versatility-focused subclass.
+source_count: 1
+status: draft
+tags:
+  - d-and-d-5e
+  - bard-subclass
+  - 2024-phb
+related:
+  - "[[bard]]"
+provenance:
+  extracted: 0.0
+  inferred: 1.0
+  ambiguous: 0.0
+created: 2026-04-27
+updated: 2026-04-27
+---
+
+## Overview
+
+The College of Lore is a Bard subclass introduced in the 2024 Player's Handbook, emphasizing knowledge and versatility in spell selection and skill mastery. ^[inferred]
+
+## Features
+
+*Details not yet ingested. Awaiting source material.*
+
+## Relationships
+
+- [[bard]] — Parent class
+
+## Sources
+
+- `raw/class/Bard.md` — Brief mention as subclass option in Bard class reference

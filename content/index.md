@@ -88,6 +88,12 @@
 | [[rael_corven]] | Flag captain of the Red Lady; died Day −5 1495DR over the Maw; soul pressed into Delmar Fisk | 1 | draft | 2026-04-27 |
 | [[red_lady_wreck_site]] | Wreck site of the Red Lady at the Drowned Maw Shelfworks eastern edge; Pearl of Souls rests here | 1 | draft | 2026-04-27 |
 | [[dead_lady]] | The Red Lady raised by Umberlee as a spectral pressure instrument; compels Fisk toward the Pearl; cannot kill him, only tighten the circle | 1 | draft | 2026-04-27 |
+| [[acid_splash]] | Cantrip Evocation; acidic bubble explodes in 5-ft sphere at 60 ft, Dex save or 1d6 acid damage; scales to 4d6 at level 17 | 1 | draft | 2026-04-27 |
+| [[fire_bolt]] | Cantrip Evocation; ranged spell attack at 120 ft dealing 1d10 fire damage, scaling to 4d10; ignites flammable uncarried objects | 1 | draft | 2026-04-27 |
+| [[alustriels_mooncloak]] | Level 5 Abjuration; moonlight 20-ft emanation granting Half Cover and damage resistances; consumed by Liberation save-reroll or Respite healing | 1 | draft | 2026-04-27 |
+| [[circle_of_power]] | Level 5 Abjuration; 30-ft emanation grants Advantage on saves vs magic; successful half-damage saves deal no damage instead | 1 | draft | 2026-04-27 |
+| [[astral_projection]] | Level 9 Necromancy; projects up to 9 creatures into the Astral Plane in suspended animation; silver cord connects body and form until dispelled | 1 | draft | 2026-04-27 |
+| [[gate]] | Level 9 Conjuration; 5–20 ft Concentration portal to another plane for 1 min; can summon a named creature from another plane by true name | 1 | draft | 2026-04-27 |
 
 ## Notes
 

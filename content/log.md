@@ -112,3 +112,36 @@
   - UPDATED [[umberlee]] — added dead_lady to related; added relationship entry
   - UPDATED [[waveservants]] — added dead_lady link; noted Stage 1 delivery and negotiation channel role
   - UPDATED [[pearl_of_souls]] — added dead_lady link; noted Umberlee's purpose in creating her
+
+---
+
+- [2026-04-27T21:10:34Z] INGEST source="raw/spells/Acid-Splash.md" pages_updated=1 pages_created=1 contradictions=0 links_woven=2 source_type=document
+  - CREATED [[acid_splash]] — Cantrip Evocation; Dex save 1d6–4d6 acid damage in 5-ft sphere at 60 ft
+  - UPDATED [[bard]] — added spell cross-reference via Magical Secrets section
+
+---
+
+- [2026-04-27T21:10:44Z] INGEST source="raw/spells/Fire-Bolt.md" pages_updated=0 pages_created=1 contradictions=0 links_woven=2 source_type=document
+  - CREATED [[fire_bolt]] — Cantrip Evocation; ranged spell attack 1d10–4d10 fire at 120 ft; ignites uncarried flammable objects
+
+---
+
+- [2026-04-27T21:10:54Z] INGEST source="raw/spells/Alustriels-Mooncloak.md" pages_updated=0 pages_created=1 contradictions=0 links_woven=2 source_type=document
+  - CREATED [[alustriels_mooncloak]] — Level 5 Abjuration; moonlight 20-ft emanation with Half Cover + resistances; Liberation or Respite one-shot trigger
+
+---
+
+- [2026-04-27T21:11:03Z] INGEST source="raw/spells/Circle-of-Power.md" pages_updated=0 pages_created=1 contradictions=0 links_woven=2 source_type=document
+  - CREATED [[circle_of_power]] — Level 5 Abjuration; 30-ft emanation, Advantage vs magic saves, half-damage saves become no damage
+
+---
+
+- [2026-04-27T21:11:14Z] INGEST source="raw/spells/Astral-Projection.md" pages_updated=1 pages_created=1 contradictions=0 links_woven=3 source_type=document
+  - CREATED [[astral_projection]] — Level 9 Necromancy; project up to 9 creatures to Astral Plane; silver cord ties body and form
+  - UPDATED [[soul_incarnate]] — added astral_projection as related concept (consciousness-body separation)
+
+---
+
+- [2026-04-27T21:11:25Z] INGEST source="raw/spells/Gate.md" pages_updated=1 pages_created=1 contradictions=0 links_woven=3 source_type=document
+  - CREATED [[gate]] — Level 9 Conjuration; 5–20 ft Concentration portal to another plane; true-name summoning clause; divine blocking
+  - UPDATED [[the_drowned_maw]] — added gate as mechanically related (deliberate portal vs. the Maw's natural fissure)
