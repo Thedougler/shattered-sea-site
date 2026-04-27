@@ -6,8 +6,15 @@ import json
 from contextlib import redirect_stdout
 from pathlib import Path
 
-from .ingest_prep import build_ingest_prep, print_ingest_prep
-from .ingest_finalize import finalize_ingest
+from .ingest_prep import (
+    build_ingest_batch,
+    build_ingest_prep,
+    build_ingest_runner,
+    print_ingest_batch,
+    print_ingest_prep,
+    print_ingest_runner,
+)
+from .ingest_finalize import finalize_ingest, finalize_runner_dir
 from .ingest_status import (
     gather_ingest_source_status,
     has_pending_ingest_sources,
@@ -86,26 +93,78 @@ def _validate_args(parser: argparse.ArgumentParser, args: argparse.Namespace) ->
     if args.ingest_prep and args.ingest_report:
         parser.error("--ingest-prep cannot be combined with --ingest-report")
 
+    if args.ingest_batch and args.ingest_report:
+        parser.error("--ingest-batch cannot be combined with --ingest-report")
+
+    if args.ingest_runner and args.ingest_report:
+        parser.error("--ingest-runner cannot be combined with --ingest-report")
+
     if args.ingest_prep and args.status_report:
         parser.error("--ingest-prep cannot be combined with --status-report")
+
+    if args.ingest_batch and args.status_report:
+        parser.error("--ingest-batch cannot be combined with --status-report")
+
+    if args.ingest_runner and args.status_report:
+        parser.error("--ingest-runner cannot be combined with --status-report")
 
     if args.ingest_prep and args.lint_report:
         parser.error("--ingest-prep cannot be combined with --lint-report")
 
+    if args.ingest_batch and args.lint_report:
+        parser.error("--ingest-batch cannot be combined with --lint-report")
+
+    if args.ingest_runner and args.lint_report:
+        parser.error("--ingest-runner cannot be combined with --lint-report")
+
     if args.ingest_prep and args.query_prep:
         parser.error("--ingest-prep cannot be combined with --query-prep")
+
+    if args.ingest_batch and args.query_prep:
+        parser.error("--ingest-batch cannot be combined with --query-prep")
+
+    if args.ingest_runner and args.query_prep:
+        parser.error("--ingest-runner cannot be combined with --query-prep")
 
     if args.ingest_prep and args.synthesize_report:
         parser.error("--ingest-prep cannot be combined with --synthesize-report")
 
+    if args.ingest_batch and args.synthesize_report:
+        parser.error("--ingest-batch cannot be combined with --synthesize-report")
+
+    if args.ingest_runner and args.synthesize_report:
+        parser.error("--ingest-runner cannot be combined with --synthesize-report")
+
+    if args.ingest_batch and args.ingest_prep:
+        parser.error("--ingest-batch cannot be combined with --ingest-prep")
+
+    if args.ingest_runner and args.ingest_prep:
+        parser.error("--ingest-runner cannot be combined with --ingest-prep")
+
+    if args.ingest_runner and args.ingest_batch:
+        parser.error("--ingest-runner cannot be combined with --ingest-batch")
+
     if args.ingest_prep and not args.source.strip():
         parser.error("--ingest-prep requires --source")
 
-    if args.ingest_output_file and not (args.ingest_report or args.ingest_prep):
-        parser.error("--ingest-output-file requires --ingest-report or --ingest-prep")
+    if args.ingest_output_file and not (args.ingest_report or args.ingest_prep or args.ingest_batch or args.ingest_runner):
+        parser.error("--ingest-output-file requires --ingest-report, --ingest-prep, --ingest-batch, or --ingest-runner")
 
     if args.ingest_finalize and not args.ingest_finalize_file.strip():
         parser.error("--ingest-finalize requires --ingest-finalize-file")
+
+    if args.ingest_runner_finalize and any([
+        args.ingest_prep,
+        args.ingest_batch,
+        args.ingest_runner,
+        args.ingest_report,
+        args.ingest_finalize,
+        args.status_report,
+        args.lint_report,
+        args.query_prep,
+        args.synthesize_report,
+    ]):
+        parser.error("--ingest-runner-finalize cannot be combined with other report or prep flags")
 
 
 def _apply_agent_presets(args: argparse.Namespace) -> None:
@@ -138,6 +197,33 @@ def _apply_agent_presets(args: argparse.Namespace) -> None:
             args.format = "json"
         if not args.ingest_output_file:
             args.ingest_output_file = ".claude/tmp/ingest_prep.json"
+
+    if args.ingest_batch_agent:
+        args.ingest_batch = True
+        args.pending_only = True
+        if args.format == "text":
+            args.format = "json"
+        if args.limit == 10:
+            args.limit = 5
+        if not args.ingest_output_file:
+            args.ingest_output_file = ".claude/tmp/ingest_batch.json"
+
+    if args.ingest_runner_agent:
+        args.ingest_runner = True
+        args.pending_only = True
+        if args.format == "text":
+            args.format = "json"
+        if args.limit == 10:
+            args.limit = 5
+        if not args.ingest_output_file:
+            args.ingest_output_file = ".claude/tmp/ingest_runner.json"
+        if not args.ingest_checkpoint_dir:
+            args.ingest_checkpoint_dir = ".claude/tmp/ingest_runner"
+
+    if args.ingest_runner_finalize_agent:
+        args.ingest_runner_finalize = True
+        if not args.ingest_runner_dir:
+            args.ingest_runner_dir = ".claude/tmp/ingest_runner"
 
 
 def _resolve_output_path(repo_root: Path, output_file: str) -> Path:
@@ -361,18 +447,117 @@ def _run_ingest_prep(args: argparse.Namespace, repo_root: Path) -> int:
     return 0
 
 
+def _run_ingest_batch(args: argparse.Namespace, repo_root: Path) -> int:
+    payload = build_ingest_batch(
+        repo_root,
+        limit=max(1, args.limit),
+        pending_only=args.pending_only,
+    )
+    if args.ingest_output_file:
+        if args.format == "json":
+            rendered = json.dumps(payload, indent=2)
+        else:
+            buffer = io.StringIO()
+            with redirect_stdout(buffer):
+                print_ingest_batch(payload, args.format)
+            rendered = buffer.getvalue().rstrip()
+        output_path = _resolve_output_path(repo_root, args.ingest_output_file)
+        output_path.write_text(rendered + "\n", encoding="utf-8")
+        summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+        summary = summary if isinstance(summary, dict) else {}
+        print(f"ingest batch written to {output_path.relative_to(repo_root)}")
+        print(
+            "summary: "
+            f"pending={summary.get('pending_sources')} "
+            f"selected={summary.get('selected_sources')} "
+            f"next={summary.get('next_source') or 'none'}"
+        )
+    else:
+        print_ingest_batch(payload, args.format)
+    return 0
+
+
+def _run_ingest_runner(args: argparse.Namespace, repo_root: Path) -> int:
+    checkpoint_dir = _resolve_output_path(repo_root, args.ingest_checkpoint_dir)
+    payload = build_ingest_runner(
+        repo_root,
+        limit=max(1, args.limit),
+        pending_only=args.pending_only,
+        checkpoint_dir=checkpoint_dir,
+    )
+    if args.ingest_output_file:
+        if args.format == "json":
+            rendered = json.dumps(payload, indent=2)
+        else:
+            buffer = io.StringIO()
+            with redirect_stdout(buffer):
+                print_ingest_runner(payload, args.format)
+            rendered = buffer.getvalue().rstrip()
+        output_path = _resolve_output_path(repo_root, args.ingest_output_file)
+        output_path.write_text(rendered + "\n", encoding="utf-8")
+        summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+        summary = summary if isinstance(summary, dict) else {}
+        print(f"ingest runner written to {output_path.relative_to(repo_root)}")
+        print(
+            "summary: "
+            f"pending={summary.get('pending_sources')} "
+            f"selected={summary.get('selected_sources')} "
+            f"checkpoint_dir={payload.get('checkpoint_dir')}"
+        )
+    else:
+        print_ingest_runner(payload, args.format)
+    return 0
+
+
 def _run_ingest_finalize(args: argparse.Namespace, repo_root: Path) -> int:
     payload_path = Path(args.ingest_finalize_file)
     if not payload_path.is_absolute():
         payload_path = repo_root / payload_path
     result = finalize_ingest(repo_root, payload_path)
     print(f"ingest finalize updated {result['manifest_path']}, {result['log_path']}, {result['hot_path']}")
+    if result["mode"] == "single":
+        print(
+            "summary: "
+            f"source={result['source_path']} "
+            f"created={result['pages_created']} "
+            f"updated={result['pages_updated']} "
+            f"contradictions={result['contradictions']} "
+            f"skipped={result['sources_skipped']}"
+        )
+    else:
+        print(
+            "summary: "
+            f"sources={result['sources_processed']} "
+            f"applied={result['sources_applied']} "
+            f"skipped={result['sources_skipped']} "
+            f"created={result['pages_created']} "
+            f"updated={result['pages_updated']} "
+            f"contradictions={result['contradictions']}"
+        )
+    return 0
+
+
+def _run_ingest_runner_finalize(args: argparse.Namespace, repo_root: Path) -> int:
+    checkpoint_dir = _resolve_output_path(repo_root, args.ingest_runner_dir) if args.ingest_runner_dir else repo_root / ".claude/tmp/ingest_runner"
+    result = finalize_runner_dir(repo_root, checkpoint_dir)
+    if not result.get("ok"):
+        print(f"error: {result.get('error')}")
+        return 2
+    if result.get("files_finalized", 0) == 0:
+        print(f"ingest runner-finalize: {result.get('message', 'no completed stubs')} (checked {result.get('files_found', 0)} stubs in {result.get('checkpoint_dir', '?')})")
+        return 0
+    print(
+        f"ingest runner-finalize updated "
+        f"{result.get('manifest_path')}, {result.get('log_path')}, {result.get('hot_path')}"
+    )
     print(
         "summary: "
-        f"source={result['source_path']} "
-        f"created={result['pages_created']} "
-        f"updated={result['pages_updated']} "
-        f"contradictions={result['contradictions']}"
+        f"stubs_found={result.get('files_found')} "
+        f"finalized={result.get('files_finalized')} "
+        f"skipped={len(result.get('skipped', []))} "
+        f"created={result.get('pages_created')} "
+        f"updated={result.get('pages_updated')} "
+        f"contradictions={result.get('contradictions')}"
     )
     return 0
 
@@ -413,6 +598,54 @@ def main() -> int:
         ),
     )
     parser.add_argument(
+        "--ingest-batch",
+        action="store_true",
+        help="Build a compact multi-source ingest packet for the selected raw/ queue",
+    )
+    parser.add_argument(
+        "--ingest-batch-agent",
+        action="store_true",
+        help=(
+            "Agent preset for batch ingest preflight: implies --ingest-batch, defaults to JSON output, "
+            "sets --pending-only, caps selection to 5, and writes .claude/tmp/ingest_batch.json"
+        ),
+    )
+    parser.add_argument(
+        "--ingest-runner",
+        action="store_true",
+        help="Build a sequential ingest runner packet plus per-source prep checkpoints",
+    )
+    parser.add_argument(
+        "--ingest-runner-agent",
+        action="store_true",
+        help=(
+            "Agent preset for ingest runner mode: implies --ingest-runner, defaults to JSON output, "
+            "sets --pending-only, caps selection to 5, writes .claude/tmp/ingest_runner.json, "
+            "and materializes prep checkpoints under .claude/tmp/ingest_runner/"
+        ),
+    )
+    parser.add_argument(
+        "--ingest-runner-finalize",
+        action="store_true",
+        help=(
+            "Discover completed finalize stubs in --ingest-runner-dir and submit them in one pass; "
+            "safe to call after each step or at the end of a batch run"
+        ),
+    )
+    parser.add_argument(
+        "--ingest-runner-finalize-agent",
+        action="store_true",
+        help=(
+            "Agent preset for runner finalize: implies --ingest-runner-finalize and defaults "
+            "--ingest-runner-dir to .claude/tmp/ingest_runner"
+        ),
+    )
+    parser.add_argument(
+        "--ingest-runner-dir",
+        default="",
+        help="With --ingest-runner-finalize, path to the runner checkpoint directory (default: .claude/tmp/ingest_runner)",
+    )
+    parser.add_argument(
         "--status-report",
         action="store_true",
         help="Show skill-aligned wiki status/delta across sources and manifest",
@@ -445,9 +678,14 @@ def main() -> int:
         "--ingest-output-file",
         default="",
         help=(
-            "With --ingest-report or --ingest-prep, write output to this path instead of stdout; "
-            "commonly used by --ingest-agent"
+            "With --ingest-report, --ingest-prep, or --ingest-batch, write output to this path instead of stdout; "
+            "commonly used by ingest agent presets"
         ),
+    )
+    parser.add_argument(
+        "--ingest-checkpoint-dir",
+        default="",
+        help="With --ingest-runner, directory where per-source prep/finalize checkpoint paths are staged",
     )
     parser.add_argument(
         "--ingest-finalize-file",
@@ -666,6 +904,15 @@ def main() -> int:
 
     if args.ingest_prep:
         return _run_ingest_prep(args, repo_root)
+
+    if args.ingest_batch:
+        return _run_ingest_batch(args, repo_root)
+
+    if args.ingest_runner:
+        return _run_ingest_runner(args, repo_root)
+
+    if args.ingest_runner_finalize:
+        return _run_ingest_runner_finalize(args, repo_root)
 
     if args.ingest_finalize:
         return _run_ingest_finalize(args, repo_root)

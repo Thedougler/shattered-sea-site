@@ -10,8 +10,16 @@ from .constants import (
     STOP_TERMS,
     WIKILINK_RE,
 )
-from .ingest_prep import build_ingest_prep, detect_knowledge_root, print_ingest_prep
-from .ingest_finalize import finalize_ingest
+from .ingest_prep import (
+    build_ingest_batch,
+    build_ingest_prep,
+    build_ingest_runner,
+    detect_knowledge_root,
+    print_ingest_batch,
+    print_ingest_prep,
+    print_ingest_runner,
+)
+from .ingest_finalize import finalize_ingest, finalize_runner_dir
 from .ingest_status import (
     build_ingest_queue_command,
     compute_sha256,
@@ -136,9 +144,14 @@ __all__ = [
     "build_ingest_queue_command",
     "has_pending_ingest_sources",
     "detect_knowledge_root",
+    "build_ingest_batch",
     "build_ingest_prep",
+    "build_ingest_runner",
+    "print_ingest_batch",
     "print_ingest_prep",
+    "print_ingest_runner",
     "finalize_ingest",
+    "finalize_runner_dir",
     "append_query_log",
     "gather_query_prep",
     "normalize_query_log_mode",

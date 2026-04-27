@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from .constants import INDEX_ROW_RE, WIKILINK_RE
+from .ingest_status import build_ingest_queue_command, gather_ingest_source_status
 from .ingest_status import compute_sha256, load_manifest_sources
 from .knowledge_layout import detect_knowledge_layout
 
@@ -111,6 +112,101 @@ def build_ingest_prep(repo_root: Path, source_path: str) -> dict[str, object]:
     }
 
 
+def build_ingest_batch(
+    repo_root: Path,
+    *,
+    limit: int,
+    pending_only: bool,
+) -> dict[str, object]:
+    statuses = gather_ingest_source_status(repo_root)
+    pending = sorted(
+        (item for item in statuses if item.status in {"new", "changed"}),
+        key=lambda item: (item.size_bytes, item.raw_path),
+    )
+    selected_statuses = pending if pending_only else statuses
+    selected_statuses = selected_statuses[:limit]
+
+    layout = detect_knowledge_layout(repo_root)
+    knowledge_root = None
+    if layout is not None:
+        knowledge_root = layout.page_root.relative_to(repo_root).as_posix() if layout.page_root != repo_root else "."
+
+    return {
+        "ok": True,
+        "knowledge_root": knowledge_root,
+        "selection_policy": "smallest_pending_first",
+        "summary": {
+            "total_sources": len(statuses),
+            "pending_sources": len(pending),
+            "selected_sources": len(selected_statuses),
+            "pending_only": pending_only,
+            "next_source": pending[0].raw_path if pending else None,
+        },
+        "sources": [build_ingest_prep(repo_root, item.raw_path) for item in selected_statuses],
+        "queue": {
+            "pending_count": len(pending),
+            "sources": [item.raw_path for item in pending],
+            "command": build_ingest_queue_command(pending),
+        },
+    }
+
+
+def _checkpoint_slug(source_path: str) -> str:
+    parts = source_path.split("/")
+    stem = Path(parts[-1]).stem
+    parent = parts[-2] if len(parts) > 1 else "raw"
+    return _normalize_target(f"{parent}_{stem}")
+
+
+def build_ingest_runner(
+    repo_root: Path,
+    *,
+    limit: int,
+    pending_only: bool,
+    checkpoint_dir: Path,
+) -> dict[str, object]:
+    batch = build_ingest_batch(repo_root, limit=limit, pending_only=pending_only)
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
+
+    steps: list[dict[str, object]] = []
+    for index, item in enumerate(batch["sources"], start=1):
+        if not isinstance(item, dict):
+            continue
+        source_path = str(item["source_path"])
+        checkpoint_name = f"{index:02d}_{_checkpoint_slug(source_path)}.json"
+        checkpoint_path = checkpoint_dir / checkpoint_name
+        checkpoint_path.write_text(json.dumps(item, indent=2) + "\n", encoding="utf-8")
+        finalize_stub = checkpoint_dir / f"{index:02d}_{_checkpoint_slug(source_path)}_finalize.json"
+        steps.append(
+            {
+                "step": index,
+                "source_path": source_path,
+                "prep_file": checkpoint_path.relative_to(repo_root).as_posix(),
+                "finalize_file": finalize_stub.relative_to(repo_root).as_posix(),
+                "ingest_status": item.get("ingest_status"),
+                "suggested_entity_slug": item.get("suggested_entity_slug"),
+                "status": "ready",
+            }
+        )
+
+    runner_payload = {
+        "ok": True,
+        "knowledge_root": batch.get("knowledge_root"),
+        "selection_policy": batch.get("selection_policy"),
+        "summary": batch.get("summary"),
+        "queue": batch.get("queue"),
+        "checkpoint_dir": checkpoint_dir.relative_to(repo_root).as_posix(),
+        "steps": steps,
+        "instructions": [
+            "Read steps in order and consume each prep_file directly instead of calling --ingest-agent again.",
+            "After completing a source, write its finalize payload to the paired finalize_file path.",
+            "When all steps are done, run: wiki_guard --ingest-runner-finalize to process all completed stubs in one pass.",
+            "You may also run --ingest-runner-finalize after each step for incremental bookkeeping.",
+        ],
+    }
+    return runner_payload
+
+
 def print_ingest_prep(payload: dict[str, object], output_format: str) -> None:
     if output_format == "json":
         print(json.dumps(payload, indent=2))
@@ -155,3 +251,62 @@ def print_ingest_prep(payload: dict[str, object], output_format: str) -> None:
         print("\nunresolved entities (likely create-or-map):")
         for slug in unresolved:
             print(f"- {slug}")
+
+
+def print_ingest_batch(payload: dict[str, object], output_format: str) -> None:
+    if output_format == "json":
+        print(json.dumps(payload, indent=2))
+        return
+
+    summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+    summary = summary if isinstance(summary, dict) else {}
+    sources = payload.get("sources") if isinstance(payload.get("sources"), list) else []
+    queue = payload.get("queue") if isinstance(payload.get("queue"), dict) else {}
+    queue = queue if isinstance(queue, dict) else {}
+
+    print("wiki_guard ingest batch")
+    print(f"- knowledge_root: {payload.get('knowledge_root')}")
+    print(f"- total_sources: {summary.get('total_sources')}")
+    print(f"- pending_sources: {summary.get('pending_sources')}")
+    print(f"- selected_sources: {summary.get('selected_sources')}")
+    print(f"- next_source: {summary.get('next_source')}")
+
+    if sources:
+        print("\nselected sources:")
+        for item in sources:
+            if not isinstance(item, dict):
+                continue
+            print(
+                f"- {item.get('source_path')} [{item.get('ingest_status')}] "
+                f"{item.get('size_bytes')} bytes -> {item.get('suggested_entity_slug')}"
+            )
+
+    print("\ningest queue command:")
+    print(queue.get("command", "# no pending ingest sources"))
+
+
+def print_ingest_runner(payload: dict[str, object], output_format: str) -> None:
+    if output_format == "json":
+        print(json.dumps(payload, indent=2))
+        return
+
+    summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+    summary = summary if isinstance(summary, dict) else {}
+    steps = payload.get("steps") if isinstance(payload.get("steps"), list) else []
+
+    print("wiki_guard ingest runner")
+    print(f"- knowledge_root: {payload.get('knowledge_root')}")
+    print(f"- checkpoint_dir: {payload.get('checkpoint_dir')}")
+    print(f"- pending_sources: {summary.get('pending_sources')}")
+    print(f"- selected_sources: {summary.get('selected_sources')}")
+    print(f"- next_source: {summary.get('next_source')}")
+
+    if steps:
+        print("\nsteps:")
+        for item in steps:
+            if not isinstance(item, dict):
+                continue
+            print(
+                f"- step {item.get('step')}: {item.get('source_path')} -> "
+                f"prep={item.get('prep_file')} finalize={item.get('finalize_file')}"
+            )

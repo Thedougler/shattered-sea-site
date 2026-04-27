@@ -41,6 +41,9 @@ If `status == unchanged`: skip and tell the user. If `new` or `changed`: proceed
 # → .claude/tmp/ingest_runner.json + .claude/tmp/ingest_runner/<source>.json per step
 # Process steps[] in order. Read each step's prep_file directly.
 # After finishing a source, write finalize payload to that step's finalize_file.
+# When all steps are done (or at any checkpoint), run:
+./.claude/bin/wiki_guard --ingest-runner-finalize-agent
+# → discovers all completed finalize stubs in .claude/tmp/ingest_runner/ and submits them
 ```
 
 **Pending queue only (no prep checkpoints):**
@@ -202,10 +205,18 @@ After writing body: update `provenance:` fractions to reflect actual mix (should
 
 ### Phase 6 — Finalize (Record Keeping)
 
-Write `.claude/tmp/ingest_finalize.json` then run:
+**Single file:** Write `.claude/tmp/ingest_finalize.json` then run:
 
 ```bash
 ./.claude/bin/wiki_guard --ingest-finalize --ingest-finalize-file .claude/tmp/ingest_finalize.json
+```
+
+**Runner batch:** After writing all per-step finalize payloads to their `finalize_file` paths, run:
+
+```bash
+./.claude/bin/wiki_guard --ingest-runner-finalize-agent
+# Auto-discovers all completed stubs in .claude/tmp/ingest_runner/ and submits them in one pass.
+# Safe to call after each step or at the end of the batch. Idempotent — safe to retry.
 ```
 
 Updates `.manifest.json`, `log.md`, and `hot.md` in one layout-aware pass. Idempotent — safe to retry. Accepts a single payload, `{ "entries": [] }`, or a bare array for batch finalization.

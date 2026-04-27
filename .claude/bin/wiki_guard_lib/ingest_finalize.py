@@ -13,11 +13,28 @@ def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
-def _read_json(path: Path) -> dict[str, object]:
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(payload, dict):
-        raise ValueError("finalize payload must be a JSON object")
-    return cast(dict[str, object], payload)
+def _read_json(path: Path) -> object:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _normalize_payloads(raw_payload: object) -> list[dict[str, object]]:
+    if isinstance(raw_payload, list):
+        payloads = raw_payload
+    elif isinstance(raw_payload, dict):
+        entries = raw_payload.get("entries")
+        if isinstance(entries, list):
+            payloads = entries
+        else:
+            payloads = [raw_payload]
+    else:
+        raise ValueError("finalize payload must be a JSON object or list")
+
+    normalized: list[dict[str, object]] = []
+    for payload in payloads:
+        if not isinstance(payload, dict):
+            raise ValueError("finalize payload entries must be JSON objects")
+        normalized.append(cast(dict[str, object], payload))
+    return normalized
 
 
 def _normalize_string_list(value: object) -> list[str]:
@@ -207,8 +224,43 @@ def _update_manifest(repo_root: Path, layout_page_root: Path, payload: dict[str,
     return manifest_path
 
 
-def finalize_ingest(repo_root: Path, payload_path: Path) -> dict[str, object]:
-    payload = _read_json(payload_path)
+def _payload_matches_manifest_entry(entry: object, payload: dict[str, object]) -> bool:
+    if not isinstance(entry, dict):
+        return False
+    if entry.get("content_hash") != payload.get("content_hash"):
+        return False
+    if entry.get("source_type", "document") != (
+        payload.get("source_type") if isinstance(payload.get("source_type"), str) else "document"
+    ):
+        return False
+    if entry.get("project") != (
+        payload.get("project") if isinstance(payload.get("project"), str) else None
+    ):
+        return False
+    if _normalize_string_list(entry.get("pages_created")) != _normalize_string_list(payload.get("pages_created")):
+        return False
+    if _normalize_string_list(entry.get("pages_updated")) != _normalize_string_list(payload.get("pages_updated")):
+        return False
+    return True
+
+
+def _load_manifest_entry(repo_root: Path, source_path: str) -> object:
+    manifest_path = repo_root / ".manifest.json"
+    if not manifest_path.exists():
+        return None
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(manifest, dict):
+        return None
+    sources = manifest.get("sources")
+    if not isinstance(sources, dict):
+        return None
+    return sources.get(source_path)
+
+
+def _finalize_single_ingest(repo_root: Path, layout: Any, payload: dict[str, object]) -> dict[str, object]:
     source_path = payload.get("source_path")
     content_hash = payload.get("content_hash")
     if not isinstance(source_path, str) or not source_path.strip():
@@ -216,14 +268,23 @@ def finalize_ingest(repo_root: Path, payload_path: Path) -> dict[str, object]:
     if not isinstance(content_hash, str) or not content_hash.strip():
         raise ValueError("finalize payload requires content_hash")
 
-    layout = detect_knowledge_layout(repo_root)
-    if layout is None:
-        raise ValueError("unable to detect knowledge layout")
+    existing_entry = _load_manifest_entry(repo_root, source_path)
+    if _payload_matches_manifest_entry(existing_entry, payload):
+        return {
+            "source_path": source_path,
+            "knowledge_root": layout.page_root.relative_to(repo_root).as_posix() if layout.page_root != repo_root else ".",
+            "manifest_path": (repo_root / ".manifest.json").relative_to(repo_root).as_posix(),
+            "log_path": layout.log_path.relative_to(repo_root).as_posix(),
+            "hot_path": layout.hot_path.relative_to(repo_root).as_posix(),
+            "pages_created": len(_normalize_string_list(payload.get("pages_created"))),
+            "pages_updated": len(_normalize_string_list(payload.get("pages_updated"))),
+            "contradictions": len(_normalize_contradictions(payload.get("contradictions"))),
+            "applied": False,
+        }
 
     manifest_path = _update_manifest(repo_root, layout.page_root, payload)
     log_path = _append_log(layout.log_path, payload)
     hot_path = _update_hot(layout.hot_path, payload)
-
     return {
         "source_path": source_path,
         "knowledge_root": layout.page_root.relative_to(repo_root).as_posix() if layout.page_root != repo_root else ".",
@@ -233,4 +294,98 @@ def finalize_ingest(repo_root: Path, payload_path: Path) -> dict[str, object]:
         "pages_created": len(_normalize_string_list(payload.get("pages_created"))),
         "pages_updated": len(_normalize_string_list(payload.get("pages_updated"))),
         "contradictions": len(_normalize_contradictions(payload.get("contradictions"))),
+        "applied": True,
+    }
+
+
+def finalize_runner_dir(repo_root: Path, checkpoint_dir: Path) -> dict[str, object]:
+    """Discover completed finalize stubs in checkpoint_dir and process them in one pass.
+
+    A stub is considered complete when it exists on disk and contains a non-empty JSON
+    object with a ``source_path`` key.  Empty stubs (not yet written by the agent) and
+    stubs that do not match that shape are silently skipped so this command is safe to
+    call after each step without waiting for the full batch to finish.
+    """
+    if not checkpoint_dir.exists():
+        return {
+            "ok": False,
+            "error": f"checkpoint directory not found: {checkpoint_dir}",
+            "files_found": 0,
+            "files_finalized": 0,
+        }
+
+    stub_paths = sorted(checkpoint_dir.glob("*_finalize.json"))
+    payloads: list[dict[str, object]] = []
+    skipped: list[str] = []
+    for stub in stub_paths:
+        try:
+            raw_text = stub.read_text(encoding="utf-8").strip()
+            if not raw_text:
+                skipped.append(stub.name)
+                continue
+            raw = json.loads(raw_text)
+            if isinstance(raw, list):
+                for entry in raw:
+                    if isinstance(entry, dict) and entry.get("source_path"):
+                        payloads.append(entry)
+            elif isinstance(raw, dict):
+                entries = raw.get("entries")
+                if isinstance(entries, list):
+                    for entry in entries:
+                        if isinstance(entry, dict) and entry.get("source_path"):
+                            payloads.append(entry)
+                elif raw.get("source_path"):
+                    payloads.append(raw)
+                else:
+                    skipped.append(stub.name)
+            else:
+                skipped.append(stub.name)
+        except (json.JSONDecodeError, OSError):
+            skipped.append(stub.name)
+
+    if not payloads:
+        return {
+            "ok": True,
+            "message": "no completed finalize stubs found",
+            "checkpoint_dir": checkpoint_dir.relative_to(repo_root).as_posix(),
+            "files_found": len(stub_paths),
+            "files_finalized": 0,
+            "skipped": skipped,
+        }
+
+    combined_path = checkpoint_dir / "_combined_finalize.json"
+    combined_path.write_text(json.dumps({"entries": payloads}, indent=2) + "\n", encoding="utf-8")
+    result = finalize_ingest(repo_root, combined_path)
+    result["ok"] = True
+    result["checkpoint_dir"] = checkpoint_dir.relative_to(repo_root).as_posix()
+    result["files_found"] = len(stub_paths)
+    result["files_finalized"] = len(payloads)
+    result["skipped"] = skipped
+    return result
+
+
+def finalize_ingest(repo_root: Path, payload_path: Path) -> dict[str, object]:
+    payloads = _normalize_payloads(_read_json(payload_path))
+
+    layout = detect_knowledge_layout(repo_root)
+    if layout is None:
+        raise ValueError("unable to detect knowledge layout")
+
+    results = [_finalize_single_ingest(repo_root, layout, payload) for payload in payloads]
+    applied = [result for result in results if result["applied"] is True]
+
+    return {
+        "source_path": results[0]["source_path"] if len(results) == 1 else None,
+        "source_paths": [result["source_path"] for result in results],
+        "mode": "single" if len(results) == 1 else "batch",
+        "sources_processed": len(results),
+        "sources_applied": len(applied),
+        "sources_skipped": len(results) - len(applied),
+        "knowledge_root": layout.page_root.relative_to(repo_root).as_posix() if layout.page_root != repo_root else ".",
+        "manifest_path": (repo_root / ".manifest.json").relative_to(repo_root).as_posix(),
+        "log_path": layout.log_path.relative_to(repo_root).as_posix(),
+        "hot_path": layout.hot_path.relative_to(repo_root).as_posix(),
+        "pages_created": sum(cast(int, result["pages_created"]) for result in results),
+        "pages_updated": sum(cast(int, result["pages_updated"]) for result in results),
+        "contradictions": sum(cast(int, result["contradictions"]) for result in results),
     }
