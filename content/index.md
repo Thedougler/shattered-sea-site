@@ -79,6 +79,12 @@
 | [[nona_black_jaw]] | Rattkin matriarch and Tangle elder of the Warren; Black-Jaw Run head; Perrin's grandmother; does not know the Vestra sank | 1 | draft | 2026-04-27 |
 | [[rattkin]] | Small humanoid species; three varieties (Black/Brown/Fancy); oldest port presence in the Sea; organized into Runs and Holds via the Passage | 2 | active | 2026-04-27 |
 | [[grung]] | Brilliantly colored amphibious Small humanoid; skin color = caste at birth; six castes Gold→Green; daily water immersion required; life span ~30 years | 1 | active | 2026-04-27 |
+| [[veth]] | Largest Verdant Teeth island; Gold-caste settlement on canopy platforms; only sanctioned trade beach (Veth's west coast) | 1 | draft | 2026-04-27 |
+| [[karath]] | Raid-staging Verdant Teeth island; Purple-caste dominant; organized expansion over last two years; dart fire without warning | 1 | draft | 2026-04-27 |
+| [[dreth]] | Eastern Verdant Teeth island; freshwater and cultivation; Green/Orange caste; minimal military; survivable for outsiders | 1 | draft | 2026-04-27 |
+| [[orak]] | Eastern Verdant Teeth island, close to Dreth; same function; survivable for outsiders | 1 | draft | 2026-04-27 |
+| [[aruhe]] | Deserted island east of Karath; not one of the five Teeth proper; optional threat location | 1 | draft | 2026-04-27 |
+| [[botukuri]] | Grung clan household on Sorn; operates the slave labour system; Pell was enslaved and killed here | 1 | draft | 2026-04-27 |
 
 ## Notes
 

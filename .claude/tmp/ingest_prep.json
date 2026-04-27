@@ -1,21 +1,34 @@
 {
   "ok": true,
-  "source_path": "raw/species/Grung.md",
+  "source_path": "raw/regions/Verdant-Teeth.md",
   "knowledge_root": "content",
   "source_type": "document",
-  "size_bytes": 5260,
-  "content_hash": "sha256:7f0dc584aa82f44a76652f2a300db5f47dab6ec3e1547530c9e9c66598c10982",
+  "size_bytes": 6003,
+  "content_hash": "sha256:27893194ced7294ade75b5586c14a6a326e53b6750785b3cca8ae966c64c9045",
   "ingest_status": "new",
   "last_ingested": null,
-  "suggested_entity_slug": "grung",
+  "suggested_entity_slug": "verdant_teeth",
   "wikilinks": {
-    "total_unique": 3,
+    "total_unique": 16,
     "existing_entities": [
+      "grung",
       "jean_claude_tabarnack",
-      "the_grung"
+      "kalowe",
+      "pell",
+      "sentinels_of_the_eyrie",
+      "simone_tabarnack",
+      "sorn",
+      "the_doldrums",
+      "the_grung",
+      "the_midchain",
+      "the_shattered_sea"
     ],
     "unresolved_entities": [
-      "verdant_teeth"
+      "aruhe",
+      "dreth",
+      "karath",
+      "orak",
+      "veth"
     ]
   }
 }

@@ -9,7 +9,9 @@ updated: 2026-04-27
 
 ## Recent Activity
 
-- [2026-04-27] INGEST `raw/species/Grung.md` — Grung species page created; Jean-Claude confirmed Blue caste (slave handlers) — his caste role with Pell is now structurally explicit.
+- [2026-04-27] INGEST `raw/regions/Verdant-Teeth.md` — Verdant Teeth fully mapped: 5 islands detailed, slave economy, Karath expansion (organized, not opportunistic), Botukuri clan named, Jean-Claude's terminal arc explicit.
+- [2026-04-27] INGEST `raw/regions/Verdant-Scatter.md` — parent_location and appearance added.
+- [2026-04-27] INGEST `raw/species/Grung.md` — Grung species page created; Jean-Claude confirmed Blue caste (slave handlers).
 - [2026-04-27] INGEST `raw/species/Rattkin.md` — Rattkin expanded: 3 varieties, 6 traits, Run/Hold vocabulary; Perrin confirmed Fancy Rat.
 - [2026-04-27] INGEST `raw/npcs/Nona-Black-Jaw.md` — Nona Black-Jaw and Rattkin stub created; Vestra gains heirloom provenance; Passage gains Tangle structure.
 - [2026-04-27] INGEST `raw/npcs/Master-Kyzil.md` — Kyzil fully expanded: barn owl, "Who." voice, dreidel, Port Tidefall, withheld truth.
