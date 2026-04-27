@@ -1,0 +1,18 @@
+[
+  {
+    "event": "PostToolUse",
+    "tool": "Write",
+    "condition": "tool_input.file_path && tool_input.file_path.includes('/raw/')",
+    "command": "echo 'LLM-Wiki: New file detected in raw/. Run /llm-wiki:ingest to process it into the knowledge graph.'"
+  },
+  {
+    "event": "PostToolUse",
+    "tool": "Bash",
+    "condition": "tool_input.command && (tool_input.command.includes('cp ') || tool_input.command.includes('mv ')) && tool_output.stdout && tool_output.stdout.includes('raw/')",
+    "command": "echo 'LLM-Wiki: File moved into raw/. Run /llm-wiki:ingest to process it.'"
+  },
+  {
+    "event": "Stop",
+    "command": "echo 'LLM-Wiki: Session ending. If you made decisions worth keeping, checkpoint to .claude/memory/ before closing. Use /llm-wiki:persistent-memory-management for the protocol.'"
+  }
+]

@@ -1,0 +1,47 @@
+{
+  "enabledPlugins": {
+    "pyright-lsp@claude-plugins-official": true
+  },
+  "permissions": {
+    "allow": [
+      "Read(*)",
+      "Write(wiki/**)",
+      "Write(**/*.canvas)",
+      "Write(index.md)",
+      "Write(log.md)",
+      "Bash(find * -type f -name '*.md')",
+      "Bash(grep -r * wiki/)",
+      "Bash(grep -r * raw/)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(wc -l *)",
+      "Bash(mkdir -p *)",
+      "Bash(git log *)",
+      "Bash(git diff *)",
+      "Bash(git status)",
+      "Bash(obsidian *)",
+      "Bash(defuddle *)",
+      "Bash(npx skills *)",
+      "Bash(.claude/bin/*)",
+      "Bash(./.claude/bin/*)",
+      "Bash(python -m scripts.*)",
+      "Bash(python3 .claude/bin/*)",
+      "Bash(nohup python *)",
+      "Bash(shasum *)",
+      "Bash(sha256sum *)",
+      "Bash(cp -r *)",
+      "Write(.claude/memory/**)",
+      "Write(hot.md)",
+      "Write(.manifest.json)",
+      "Write(_insights.md)",
+      "Write(_archives/**)"
+    ],
+    "deny": [
+      "Write(raw/**)",
+      "Bash(rm *)",
+      "Bash(curl *)",
+      "Bash(wget *)",
+      "Bash(* --delete *)"
+    ]
+  }
+}

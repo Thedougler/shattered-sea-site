@@ -1,0 +1,58 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-merge-conflict
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.41.0
+    hooks:
+      - id: markdownlint
+        args: ["--config", ".markdownlint.yaml"]
+        files: ^(content/.*\.md|raw/.*\.md|docs/.*\.md|\.claude/.*\.md|README\.md|CLAUDE\.md)$
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.11.11
+    hooks:
+      - id: ruff
+        args: ["--fix"]
+        files: ^(\.claude/bin/.*\.py|tests/.*\.py)$
+      - id: ruff-format
+        files: ^(\.claude/bin/.*\.py|tests/.*\.py)$
+
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.15.0
+    hooks:
+      - id: mypy
+        args: ["--config-file=pyproject.toml"]
+        additional_dependencies:
+          - types-PyYAML
+        files: ^(\.claude/bin/.*\.py|tests/.*\.py|pyproject\.toml)$
+
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest (coverage gate)
+        entry: ./.claude/bin/venv_python -m pytest
+        language: system
+        pass_filenames: false
+        files: ^(tests/.*\.py|\.claude/bin/.*\.py|pyproject\.toml)$
+
+  - repo: https://github.com/PyCQA/pylint
+    rev: v3.2.7
+    hooks:
+      - id: pylint
+        files: ^\.claude/bin/.*\.py$
+        args:
+          - --disable=all
+          - --enable=C0302,R0911,R0912,R0913,R0914,R0915,R0916,R0917
+          - --max-line-length=100
+          - --max-module-lines=700
+          - --max-branches=20
+          - --max-args=10
+          - --max-locals=30
+          - --max-statements=80
+          - --max-returns=8
+          - --max-bool-expr=8

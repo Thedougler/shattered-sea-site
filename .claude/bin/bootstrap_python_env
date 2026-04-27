@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo_root="$(cd "${script_dir}/../.." && pwd)"
+venv_dir="${CLAUDE_VENV_DIR:-${repo_root}/.claude/.venv}"
+req_file="${repo_root}/.claude/python/requirements.txt"
+python_bin="${PYTHON_BIN:-python3}"
+
+if [[ ! -f "${req_file}" ]]; then
+  echo "requirements file missing: ${req_file}" >&2
+  exit 1
+fi
+
+if command -v uv >/dev/null 2>&1; then
+  echo "[bootstrap] using uv to create virtual environment"
+  uv venv --allow-existing --python "${python_bin}" "${venv_dir}"
+  uv pip install --python "${venv_dir}/bin/python" -r "${req_file}"
+else
+  echo "[bootstrap] uv not found, using python venv"
+  "${python_bin}" -m venv "${venv_dir}"
+  "${venv_dir}/bin/python" -m pip install --upgrade pip
+  "${venv_dir}/bin/python" -m pip install -r "${req_file}"
+fi
+
+echo "[bootstrap] environment ready at ${venv_dir}"
+echo "[bootstrap] use .claude/bin/venv_python or .claude/bin/venv_pip wrappers"

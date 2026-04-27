@@ -1,0 +1,18 @@
+default: true
+
+# Long timeline and lore lines are intentional in this vault.
+MD013: false
+
+# Ordered list marker style varies in source/reference notes.
+MD029: false
+
+# Allow duplicate headings in long reference pages.
+MD024:
+  siblings_only: true
+
+# Wiki pages frequently start with frontmatter and section headings.
+MD025: false
+MD041: false
+
+# Existing wiki notes use compact list formatting under section prose.
+MD032: false

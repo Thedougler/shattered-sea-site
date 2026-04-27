@@ -1,0 +1,85 @@
+from __future__ import annotations
+
+from datetime import date
+from pathlib import Path
+
+from .constants import INDEX_ROW_RE, INGEST_TIMESTAMP_RE, WIKILINK_RE
+from .utils import levenshtein_distance, parse_frontmatter, parse_iso_date
+
+
+def read_index_entries(repo_root: Path) -> dict[str, str]:
+    index_path = repo_root / "index.md"
+    if not index_path.exists():
+        return {}
+
+    entries: dict[str, str] = {}
+    for line in index_path.read_text(encoding="utf-8").splitlines():
+        match = INDEX_ROW_RE.match(line)
+        if not match:
+            continue
+        slug = match.group(1)
+        summary = match.group(2).strip()
+        entries[slug] = summary
+    return entries
+
+
+def build_page_inventory(repo_root: Path) -> dict[str, dict[str, object]]:
+    wiki_dir = repo_root / "wiki"
+    pages: dict[str, dict[str, object]] = {}
+    if not wiki_dir.exists():
+        return pages
+
+    for path in sorted(wiki_dir.rglob("*.md")):
+        slug = path.stem
+        text = path.read_text(encoding="utf-8")
+        frontmatter = parse_frontmatter(text) or {}
+        links: list[str] = []
+        for link in WIKILINK_RE.findall(text):
+            target = link.split("/")[-1].strip()
+            if target:
+                links.append(target)
+
+        pages[slug] = {
+            "path": path,
+            "rel_path": path.relative_to(repo_root).as_posix(),
+            "text": text,
+            "frontmatter": frontmatter,
+            "links": links,
+        }
+    return pages
+
+
+def classify_dead_link(target: str, known_slugs: set[str]) -> tuple[str, str | None]:
+    best: tuple[int, str] | None = None
+    for slug in known_slugs:
+        dist = levenshtein_distance(target, slug)
+        if best is None or dist < best[0]:
+            best = (dist, slug)
+    if best is not None and best[0] <= 2:
+        return ("typo_likely", best[1])
+    return ("stub_worthy", None)
+
+
+def collect_ingestion_dates(log_text: str) -> list[date]:
+    dates: list[date] = []
+    for line in log_text.splitlines():
+        if "INGEST" not in line:
+            continue
+        match = INGEST_TIMESTAMP_RE.search(line)
+        if not match:
+            continue
+        parsed = parse_iso_date(match.group(1))
+        if parsed is not None:
+            dates.append(parsed)
+    return sorted(dates)
+
+
+def suggest_related_pages(links: list[str], current_slug: str, limit: int = 3) -> list[str]:
+    out: list[str] = []
+    for slug in links:
+        if slug == current_slug or slug in out:
+            continue
+        out.append(slug)
+        if len(out) >= limit:
+            break
+    return out

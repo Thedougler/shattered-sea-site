@@ -11,3 +11,17 @@ private/
 replit.nix
 .quartz/
 quartz/cli/tui/dist/
+.claude/bin/__pycache__/
+.claude/bin/wiki_guard_lib/__pycache__/
+.claude/memory/
+
+tests/__pycache__/
+.env
+raw/
+.manifest.json
+content/concepts/
+content/entities/
+content/references/
+content/sources/
+content/skills/
+content/projects/

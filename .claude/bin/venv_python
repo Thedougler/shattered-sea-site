@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo_root="$(cd "${script_dir}/../.." && pwd)"
+venv_dir="${CLAUDE_VENV_DIR:-${repo_root}/.claude/.venv}"
+venv_python="${venv_dir}/bin/python"
+
+if [[ ! -x "${venv_python}" ]]; then
+  echo "virtualenv not found at ${venv_dir}" >&2
+  echo "run .claude/bin/bootstrap_python_env first" >&2
+  exit 1
+fi
+
+exec "${venv_python}" "$@"
