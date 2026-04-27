@@ -101,3 +101,14 @@
   - UPDATED [[the_warren]] — Passage network base from 1240DR
   - UPDATED [[sorn]] — Simone's garrison; Jean-Claude's origin island
   - UPDATED [[umberlee]] — retribution against Fisk's Fleet Day −5 detailed
+
+---
+
+- [2026-04-27T00:00:00Z] INGEST source="raw/ships/Dead-Lady.md" pages_updated=6 pages_created=2 contradictions=0 links_woven=12 source_type=document
+  - CREATED [[dead_lady]] — the Red Lady raised spectral by Umberlee; 4-stage pressure deployment against Fisk; cannot kill him; Waveservants are the only negotiation channel
+  - CREATED [[red_lady_wreck_site]] — renamed from erroneously named `dead_lady` location page; wreck of the Red Lady at the Maw's Shelfworks eastern edge
+  - UPDATED [[red_lady]] — added raised form note; added links to both dead_lady and red_lady_wreck_site
+  - UPDATED [[delmar_fisk]] — added dead_lady and red_lady_wreck_site links; wreck site reference corrected
+  - UPDATED [[umberlee]] — added dead_lady to related; added relationship entry
+  - UPDATED [[waveservants]] — added dead_lady link; noted Stage 1 delivery and negotiation channel role
+  - UPDATED [[pearl_of_souls]] — added dead_lady link; noted Umberlee's purpose in creating her

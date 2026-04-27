@@ -9,7 +9,9 @@ updated: 2026-04-27
 
 ## Recent Activity
 
-- [2026-04-27] INGEST `raw/regions/Verdant-Teeth.md` — Verdant Teeth fully mapped: 5 islands detailed, slave economy, Karath expansion (organized, not opportunistic), Botukuri clan named, Jean-Claude's terminal arc explicit.
+- [2026-04-27] INGEST `raw/ships/Dead-Lady.md` — Dead Lady created as spectral ship entity: the Red Lady raised by Umberlee, 4-stage pressure deployment against Fisk, negotiation leverage mechanic. Wreck site renamed to [[red_lady_wreck_site]].
+- [2026-04-27] INGEST `raw/ships/Red-Lady.md` — Red Lady fully detailed: Tier 2 stat block, deck layout, wreck narrative (fog, 50ft, Umberlee's laughter). Rael Corven named as flag captain. Red Lady wreck site documented.
+- [2026-04-27] INGEST `raw/regions/Verdant-Teeth.md` — Verdant Teeth fully mapped: 5 islands, slave economy, Karath expansion, Botukuri clan.
 - [2026-04-27] INGEST `raw/regions/Verdant-Scatter.md` — parent_location and appearance added.
 - [2026-04-27] INGEST `raw/species/Grung.md` — Grung species page created; Jean-Claude confirmed Blue caste (slave handlers).
 - [2026-04-27] INGEST `raw/species/Rattkin.md` — Rattkin expanded: 3 varieties, 6 traits, Run/Hold vocabulary; Perrin confirmed Fancy Rat.
@@ -22,6 +24,8 @@ updated: 2026-04-27
 - [2026-04-26] INGEST `The-Shattered-Sea.md` — 35 pages, setting foundation.
 
 ## Active Threads
+
+- **The Dead Lady** — Umberlee's pressure instrument against Fisk. The Red Lady raised spectral, crewed by his dead sailors, driven by Umberlee directly. Cannot kill him (she needs him alive to retrieve the Pearl). Four deployment stages from sighting to active hull attack. Fisk has genuine leverage if he works it out: she *needs* him. See [[dead_lady]].
 
 - **The Conflict Chain** — fully documented: Pearl theft (Day −6) → Umberlee's retribution (Day −5) → Pearl on Maw floor → fissure amplification → Leviathan breakthrough → Auralis wakes → Perrin's unknowing warlock pact (Day −4) → all five party members aboard the Saltwright (Session 1). See [[campaign_timeline]].
 

@@ -85,6 +85,9 @@
 | [[orak]] | Eastern Verdant Teeth island, close to Dreth; same function; survivable for outsiders | 1 | draft | 2026-04-27 |
 | [[aruhe]] | Deserted island east of Karath; not one of the five Teeth proper; optional threat location | 1 | draft | 2026-04-27 |
 | [[botukuri]] | Grung clan household on Sorn; operates the slave labour system; Pell was enslaved and killed here | 1 | draft | 2026-04-27 |
+| [[rael_corven]] | Flag captain of the Red Lady; died Day −5 1495DR over the Maw; soul pressed into Delmar Fisk | 1 | draft | 2026-04-27 |
+| [[red_lady_wreck_site]] | Wreck site of the Red Lady at the Drowned Maw Shelfworks eastern edge; Pearl of Souls rests here | 1 | draft | 2026-04-27 |
+| [[dead_lady]] | The Red Lady raised by Umberlee as a spectral pressure instrument; compels Fisk toward the Pearl; cannot kill him, only tighten the circle | 1 | draft | 2026-04-27 |
 
 ## Notes
 
