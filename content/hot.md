@@ -9,9 +9,9 @@ updated: 2026-04-27
 
 ## Recent Activity
 
-- [2026-04-27] INGEST `raw/conditions/Blinded.md` — 1 new reference page: Blinded condition (sight loss, attack Advantage/Disadvantage asymmetry).
-- [2026-04-27] INGEST `raw/class/Bard.md` — 5 new reference pages: Bard class (d8 charisma caster with Bardic Inspiration) + 4 subclass stubs (Valor, Dance, Glamour, Lore).
-- [2026-04-26] INGEST `Campaign-Timeline.md` — 22 new pages, 16 major updates. Party fully characterized. Conflict chain now fully documented.
+- [2026-04-27] INGEST `raw/factions/Sentinels-Of-The-Eyrie.md` — Sentinels fully expanded: Objective Observation doctrine, thinning status, Dravosi/Fisk relations, Soul Incarnate secret introduced.
+- [2026-04-27] INGEST `raw/conditions/Blinded.md` — 1 new reference page: Blinded condition.
+- [2026-04-27] INGEST `raw/class/Bard.md` — 5 new reference pages: Bard class + 4 subclass stubs.
 - [2026-04-26] INGEST `The-Shattered-Sea.md` — 35 pages, setting foundation.
 
 ## Active Threads
@@ -30,7 +30,7 @@ updated: 2026-04-27
 
 - The Antheri civilization peaked at -2000DR, vanished without violence at -495DR. Their engineering still functions 2,000 years later. [[catarina_davirelli]] is the only person who has reverse-engineered any of it.
 - [[beaumont_sel]] is a shelled creature whose shell has taken a cannonball breach. He crosses the Maw during an active supernatural crisis without explanation — worth watching.
-- The Sentinels of the Eyrie have 200 years of Maw observation data. This is a significant asset the party may not know exists.
+- The Sentinels of the Eyrie have 200 years of Maw observation data — the current anomaly exceeds all of it. Their true head is a [[soul_incarnate]] who has been watching the Maw for centuries from beneath [[the_high_eyrie]]. Living masters don't know this.
 - [[delmar_fisk]] now carries five captains' souls. The mechanics of this are undefined.
 
 ## Flagged Contradictions

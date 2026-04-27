@@ -1,16 +1,25 @@
 {
   "ok": true,
-  "source_path": "raw/conditions/Blinded.md",
+  "source_path": "raw/factions/Sentinels-Of-The-Eyrie.md",
   "knowledge_root": "content",
   "source_type": "document",
-  "size_bytes": 488,
-  "content_hash": "sha256:6bd01f2457016674e3774ddac916fbb2a4c54d5622b80d0502e7b7d2936a36aa",
+  "size_bytes": 6189,
+  "content_hash": "sha256:e9af697eba32bb2bccce915f88a74860c3b13d6f5736ae3d233193378844774e",
   "ingest_status": "new",
   "last_ingested": null,
-  "suggested_entity_slug": "blinded",
+  "suggested_entity_slug": "sentinels_of_the_eyrie",
   "wikilinks": {
-    "total_unique": 0,
-    "existing_entities": [],
-    "unresolved_entities": []
+    "total_unique": 7,
+    "existing_entities": [
+      "crisdalynn_khinriss",
+      "delmar_fisk",
+      "master_kyzil",
+      "the_dravosi_crown",
+      "the_drowned_maw",
+      "the_high_eyrie"
+    ],
+    "unresolved_entities": [
+      "soul_incarnate"
+    ]
   }
 }
