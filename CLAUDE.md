@@ -1,5 +1,7 @@
 # LLM-Wiki: shattered_sea
 
+Hosted publically via quartz on github pages.
+
 ## Domain Purpose
 
 A persistent, compounding knowledge base for the Shattered Sea campaign — lore, factions, entities, locations, and emergent story threads.
@@ -56,8 +58,6 @@ Use these when you hit a gap in what the plugin can do.
 - **`/llm-wiki:executing-plans`** — Execute a written plan task-by-task with verification at every step.
 - **`/llm-wiki:systematic-debugging`** — Root-cause-first debugging protocol for any vault error, broken link, or validation failure.
 - **`/llm-wiki:verification-before-completion`** — Gate function: run verification commands and read output before claiming any operation is complete.
-- **`/llm-wiki:context-fundamentals`** — Context engineering principles: attention budget, token positioning, progressive loading. Use when designing agent systems or optimizing how information is structured in context.
-- **`/llm-wiki:context-compression`** — Compression strategies for long-running wiki sessions. Use when sessions span large ingestion batches or approach context limits.
 - **`/llm-wiki:find-skills`** — Search the open agent skills ecosystem (`skills.sh`) for an existing skill when you need a capability this plugin doesn't cover. Check here before building anything from scratch.
 - **`/llm-wiki:skill-creator`** — Create and iteratively improve a new skill when `find-skills` turns up nothing. The full creation loop: draft → test → eval → refine.
 

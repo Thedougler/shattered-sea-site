@@ -20,3 +20,12 @@ tests/__pycache__/
 raw/
 .manifest.json
 .claude/tmp/
+
+# VS Code: keep shared workspace config, ignore personal/local state
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# Python bytecode caches
+**/__pycache__/
+*.py[cod]
