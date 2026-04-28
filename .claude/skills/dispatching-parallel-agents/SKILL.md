@@ -27,7 +27,7 @@ You delegate tasks to specialized subagents with isolated context. By precisely 
 **Don't use when:**
 - Updates are related (fixing one might fix others — e.g., reciprocal wikilinks)
 - Need to understand full vault state before acting
-- Agents would edit the same files (e.g., both updating `wiki/index.md`)
+- Agents would edit the same files (e.g., both updating `content/index.md`)
 - Operations must be sequential (ingest → lint → commit)
 
 ## The Pattern
@@ -63,9 +63,9 @@ Agent 3 → Create new location page for The Coral Spire
 When agents return:
 - Read each summary
 - Verify no conflicting changes (e.g., contradictory wikilinks)
-- Run `wiki workflow validate --summary` on all changed pages
-- Verify `wiki/index.md` is consistent
-- Git commit all changes together
+- Run `python .claude/bin/wiki_guard.py --lint-agent` on all changed pages
+- Verify `content/index.md` is consistent
+- Git commit all changes together: `git add content/ && git commit -m "update: <summary>"`
 
 ## Agent Prompt Structure
 
@@ -108,11 +108,13 @@ Facts from canon:
 - Alignment: Chaotic Neutral
 - Mentioned in: Session 3 source
 
+Vault index for wikilink validation (check ONLY against these slugs):
+[paste relevant lines from content/index.md]
+
 Your task:
 1. Follow the template exactly
 2. Use frontmatter: type: deity, campaign: "shattered-sea"
-3. Create appropriate wikilinks ONLY to entities in this index:
-[paste relevant index entries]
+3. Create wikilinks ONLY to slugs present in the index excerpt above
 4. Do NOT invent lore not in the provided facts
 
 Return: Complete page content ready to write to vault
@@ -129,21 +131,25 @@ Return: Complete page content ready to write to vault
 **❌ No constraints:** Agent might restructure the entire page
 **✅ Constraints:** "Do NOT modify other fields", "ONLY update Active Problem"
 
-**❌ Shared state:** Two agents both updating `wiki/index.md`
+**❌ Shared state:** Two agents both updating `content/index.md`
 **✅ Independent:** Each agent updates a different entity page; YOU update index after
+
+**❌ Fabricated index:** "Link to related pages you think exist"
+**✅ Grounded index:** Paste the relevant section of `content/index.md` so agents only link to real slugs
 
 ## Verification After Integration
 
 After all agents return:
 1. **Review each result** — does it match the task?
 2. **Check for conflicts** — did any agent touch shared state?
-3. **Run validation** — `wiki workflow validate --summary`
+3. **Run lint** — `python .claude/bin/wiki_guard.py --lint-agent`
 4. **Verify wikilinks** — no broken links introduced
-5. **Commit** — single commit for all parallel changes
+5. **Update index** — add any new pages to `content/index.md`
+6. **Commit** — `git add content/ && git commit -m "update: <summary of parallel changes>"`
 
 ## Key Rule
 
-**Never let parallel agents edit the same file.** If two tasks need to modify `wiki/index.md`, YOU do the index update after both agents return. Agents only touch their assigned pages.
+**Never let parallel agents edit the same file.** If two tasks need to modify `content/index.md`, YOU do the index update after both agents return. Agents only touch their assigned pages.
 
 ---
 
@@ -157,7 +163,7 @@ independently of wiki content work and can be dispatched in parallel with conten
 
 Dispatch `wiki-tooling-fixer` when any of these occur:
 
-- A `wiki` / `wiki_guard` command exits with an error or unexpected output
+- A `wiki_guard.py` command exits with an error or unexpected output
 - A CLI flag or subcommand you expected doesn't exist (`error: unrecognized arguments`)
 - A command works but produces wrong results (wrong files, wrong counts, missing output)
 - You had to retry an action because the first attempt used a wrong command form
@@ -168,15 +174,15 @@ Dispatch `wiki-tooling-fixer` when any of these occur:
 
 ```markdown
 **Friction description:** [what failed and what you expected instead]
-**Exact command tried:** wiki workflow validate --summary
+**Exact command tried:** python .claude/bin/wiki_guard.py --lint-agent
 **Exact output/error:** [full error message or wrong output]
-**Context:** [which skill or operation was running — e.g., "post-ingest validation"]
-**Files involved:** [optional — e.g., ".claude/bin/wiki_guard_lib/cli.py"]
+**Context:** [which skill or operation was running — e.g., "post-ingest lint step"]
+**Files involved:** [optional — e.g., ".claude/bin/wiki_guard_lib/linting.py"]
 ```
 
 ### Integration rules
 
-- `wiki-tooling-fixer` never touches wiki content pages, `index.md`, or `hot.md`
+- `wiki-tooling-fixer` never touches wiki content pages, `content/index.md`, or `content/hot.md`
 - It commits its own fix before returning — its changes are self-contained
 - You do not need to re-validate or re-commit after it returns
 - If it finds the command was correct but used wrong, it returns the correct form — apply it
