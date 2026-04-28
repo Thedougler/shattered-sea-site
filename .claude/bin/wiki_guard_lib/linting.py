@@ -4,8 +4,7 @@ import json
 from datetime import date, datetime
 from pathlib import Path
 
-from .constants import PROPER_NOUN_RE, STOP_TERMS
-from .constants import ENTITY_GAP_STOP_TERMS, GAP_NOISE_WORDS
+from .constants import ENTITY_GAP_STOP_TERMS, GAP_NOISE_WORDS, PROPER_NOUN_RE
 from .inventory import (
     build_page_inventory,
     classify_dead_link,
@@ -180,7 +179,9 @@ def _collect_entity_gaps(
             if all(token in ENTITY_GAP_STOP_TERMS or token in GAP_NOISE_WORDS for token in tokens):
                 continue
             normalized_tokens = [token.lower() for token in tokens]
-            meaningful_tokens = [token for token in normalized_tokens if token not in {"the", "a", "an"}]
+            meaningful_tokens = [
+                token for token in normalized_tokens if token not in {"the", "a", "an"}
+            ]
             if meaningful_tokens and all(token in slug_tokens for token in meaningful_tokens):
                 continue
 

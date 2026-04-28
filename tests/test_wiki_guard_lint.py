@@ -6,7 +6,6 @@ from datetime import date
 from pathlib import Path
 
 import pytest
-
 from wiki_guard_test_utils import write_page, write_required_root
 
 
@@ -122,9 +121,7 @@ def test_main_lint_safe_fix_requires_lint_report(tmp_path: Path, monkeypatch, wi
         wiki_guard.main()
 
 
-def test_main_lint_fail_on_manual_returns_non_zero(
-    tmp_path: Path, monkeypatch, wiki_guard
-) -> None:
+def test_main_lint_fail_on_manual_returns_non_zero(tmp_path: Path, monkeypatch, wiki_guard) -> None:
     write_required_root(tmp_path)
     (tmp_path / "index.md").write_text(
         """# Index: shattered_sea
@@ -316,9 +313,7 @@ def test_classify_dead_link_typo_and_stub(wiki_guard) -> None:
     assert likely is None
 
 
-def test_gather_lint_results_excludes_templates_from_inventory(
-    tmp_path: Path, wiki_guard
-) -> None:
+def test_gather_lint_results_excludes_templates_from_inventory(tmp_path: Path, wiki_guard) -> None:
     write_required_root(tmp_path)
     (tmp_path / "content").mkdir()
     (tmp_path / "content/index.md").write_text(
@@ -370,9 +365,7 @@ updated: 2026-04-26
     assert results.index.wiki_ghosts == []
 
 
-def test_gather_lint_results_normalizes_escaped_wikilink_alias(
-    tmp_path: Path, wiki_guard
-) -> None:
+def test_gather_lint_results_normalizes_escaped_wikilink_alias(tmp_path: Path, wiki_guard) -> None:
     write_required_root(tmp_path)
     (tmp_path / "content").mkdir()
     (tmp_path / "content/index.md").write_text(

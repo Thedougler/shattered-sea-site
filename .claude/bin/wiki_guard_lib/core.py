@@ -10,6 +10,7 @@ from .constants import (
     STOP_TERMS,
     WIKILINK_RE,
 )
+from .ingest_finalize import finalize_ingest, finalize_runner_dir
 from .ingest_prep import (
     build_ingest_batch,
     build_ingest_prep,
@@ -19,7 +20,6 @@ from .ingest_prep import (
     print_ingest_prep,
     print_ingest_runner,
 )
-from .ingest_finalize import finalize_ingest, finalize_runner_dir
 from .ingest_status import (
     build_ingest_queue_command,
     compute_sha256,

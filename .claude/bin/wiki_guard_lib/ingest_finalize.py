@@ -104,15 +104,21 @@ def _split_hot_sections(text: str) -> tuple[dict[str, list[str]], list[str]]:
 
 
 def _render_hot(preamble: list[str], sections: dict[str, list[str]]) -> str:
-    blocks = ["\n".join(preamble).rstrip(), "## Recent Activity", "\n".join(sections["recent_activity"]).strip()]
-    blocks.extend([
-        "## Active Threads",
-        "\n".join(sections["active_threads"]).strip(),
-        "## Key Takeaways",
-        "\n".join(sections["key_takeaways"]).strip(),
-        "## Flagged Contradictions",
-        "\n".join(sections["flagged_contradictions"]).strip(),
-    ])
+    blocks = [
+        "\n".join(preamble).rstrip(),
+        "## Recent Activity",
+        "\n".join(sections["recent_activity"]).strip(),
+    ]
+    blocks.extend(
+        [
+            "## Active Threads",
+            "\n".join(sections["active_threads"]).strip(),
+            "## Key Takeaways",
+            "\n".join(sections["key_takeaways"]).strip(),
+            "## Flagged Contradictions",
+            "\n".join(sections["flagged_contradictions"]).strip(),
+        ]
+    )
     return "\n\n".join(block for block in blocks if block != "").rstrip() + "\n"
 
 
@@ -132,7 +138,13 @@ def _update_hot(layout_hot_path: Path, payload: dict[str, object]) -> Path:
         existing_recent = [line for line in sections["recent_activity"] if line.strip()]
         max_items = hot_payload.get("recent_activity_limit")
         limit = max_items if isinstance(max_items, int) and max_items > 0 else 12
-        existing_recent.insert(0, f"- [{datetime.now(timezone.utc).date().isoformat()}] INGEST `{payload['source_path']}` — {recent_summary.strip()}")
+        existing_recent.insert(
+            0,
+            (
+                f"- [{datetime.now(timezone.utc).date().isoformat()}] "
+                f"INGEST `{payload['source_path']}` — {recent_summary.strip()}"
+            ),
+        )
         sections["recent_activity"] = existing_recent[:limit]
 
     active_threads = _normalize_string_list(hot_payload.get("active_threads"))
@@ -159,20 +171,27 @@ def _append_log(log_path: Path, payload: dict[str, object]) -> Path:
     if log_path.exists():
         current = log_path.read_text(encoding="utf-8").rstrip()
     else:
-        current = _log_template(log_path.parent.parent if log_path.parent.name in {"content", "wiki"} else log_path.parent).rstrip()
+        current = _log_template(
+            log_path.parent.parent
+            if log_path.parent.name in {"content", "wiki"}
+            else log_path.parent
+        ).rstrip()
 
     timestamp = _utc_now_iso()
     pages_created = _normalize_string_list(payload.get("pages_created"))
     pages_updated = _normalize_string_list(payload.get("pages_updated"))
     contradictions = _normalize_contradictions(payload.get("contradictions"))
-    source_type = payload.get("source_type") if isinstance(payload.get("source_type"), str) else "document"
+    source_type = (
+        payload.get("source_type") if isinstance(payload.get("source_type"), str) else "document"
+    )
     links_woven = payload.get("links_woven")
     links_woven_value = str(links_woven).strip() if links_woven is not None else "0"
     lines = [
         (
             f'- [{timestamp}] INGEST source="{payload["source_path"]}" '
             f"pages_updated={len(pages_updated)} pages_created={len(pages_created)} "
-            f"contradictions={len(contradictions)} links_woven={links_woven_value} source_type={source_type}"
+            f"contradictions={len(contradictions)} "
+            f"links_woven={links_woven_value} source_type={source_type}"
         )
     ]
     for detail in _normalize_string_list(payload.get("log_details")):
@@ -206,9 +225,14 @@ def _update_manifest(repo_root: Path, layout_page_root: Path, payload: dict[str,
     entry = {
         "ingested_at": _utc_now_iso(),
         "size_bytes": stat.st_size,
-        "modified_at": datetime.fromtimestamp(stat.st_mtime, timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+        "modified_at": datetime.fromtimestamp(stat.st_mtime, timezone.utc)
+        .replace(microsecond=0)
+        .isoformat()
+        .replace("+00:00", "Z"),
         "content_hash": payload["content_hash"],
-        "source_type": payload.get("source_type") if isinstance(payload.get("source_type"), str) else "document",
+        "source_type": payload.get("source_type")
+        if isinstance(payload.get("source_type"), str)
+        else "document",
         "project": payload.get("project") if isinstance(payload.get("project"), str) else None,
         "pages_created": _normalize_string_list(payload.get("pages_created")),
         "pages_updated": _normalize_string_list(payload.get("pages_updated")),
@@ -237,9 +261,13 @@ def _payload_matches_manifest_entry(entry: object, payload: dict[str, object]) -
         payload.get("project") if isinstance(payload.get("project"), str) else None
     ):
         return False
-    if _normalize_string_list(entry.get("pages_created")) != _normalize_string_list(payload.get("pages_created")):
+    if _normalize_string_list(entry.get("pages_created")) != _normalize_string_list(
+        payload.get("pages_created")
+    ):
         return False
-    if _normalize_string_list(entry.get("pages_updated")) != _normalize_string_list(payload.get("pages_updated")):
+    if _normalize_string_list(entry.get("pages_updated")) != _normalize_string_list(
+        payload.get("pages_updated")
+    ):
         return False
     return True
 
@@ -260,7 +288,9 @@ def _load_manifest_entry(repo_root: Path, source_path: str) -> object:
     return sources.get(source_path)
 
 
-def _finalize_single_ingest(repo_root: Path, layout: Any, payload: dict[str, object]) -> dict[str, object]:
+def _finalize_single_ingest(
+    repo_root: Path, layout: Any, payload: dict[str, object]
+) -> dict[str, object]:
     source_path = payload.get("source_path")
     content_hash = payload.get("content_hash")
     if not isinstance(source_path, str) or not source_path.strip():
@@ -272,7 +302,9 @@ def _finalize_single_ingest(repo_root: Path, layout: Any, payload: dict[str, obj
     if _payload_matches_manifest_entry(existing_entry, payload):
         return {
             "source_path": source_path,
-            "knowledge_root": layout.page_root.relative_to(repo_root).as_posix() if layout.page_root != repo_root else ".",
+            "knowledge_root": layout.page_root.relative_to(repo_root).as_posix()
+            if layout.page_root != repo_root
+            else ".",
             "manifest_path": (repo_root / ".manifest.json").relative_to(repo_root).as_posix(),
             "log_path": layout.log_path.relative_to(repo_root).as_posix(),
             "hot_path": layout.hot_path.relative_to(repo_root).as_posix(),
@@ -287,7 +319,9 @@ def _finalize_single_ingest(repo_root: Path, layout: Any, payload: dict[str, obj
     hot_path = _update_hot(layout.hot_path, payload)
     return {
         "source_path": source_path,
-        "knowledge_root": layout.page_root.relative_to(repo_root).as_posix() if layout.page_root != repo_root else ".",
+        "knowledge_root": layout.page_root.relative_to(repo_root).as_posix()
+        if layout.page_root != repo_root
+        else ".",
         "manifest_path": manifest_path.relative_to(repo_root).as_posix(),
         "log_path": log_path.relative_to(repo_root).as_posix(),
         "hot_path": hot_path.relative_to(repo_root).as_posix(),
@@ -381,7 +415,9 @@ def finalize_ingest(repo_root: Path, payload_path: Path) -> dict[str, object]:
         "sources_processed": len(results),
         "sources_applied": len(applied),
         "sources_skipped": len(results) - len(applied),
-        "knowledge_root": layout.page_root.relative_to(repo_root).as_posix() if layout.page_root != repo_root else ".",
+        "knowledge_root": layout.page_root.relative_to(repo_root).as_posix()
+        if layout.page_root != repo_root
+        else ".",
         "manifest_path": (repo_root / ".manifest.json").relative_to(repo_root).as_posix(),
         "log_path": layout.log_path.relative_to(repo_root).as_posix(),
         "hot_path": layout.hot_path.relative_to(repo_root).as_posix(),

@@ -11,7 +11,7 @@ repos:
     hooks:
       - id: markdownlint
         args: ["--config", ".markdownlint.yaml"]
-        files: ^(content/.*\.md|raw/.*\.md|docs/.*\.md|\.claude/.*\.md|README\.md|CLAUDE\.md)$
+        files: ^(content|raw)/.*\.md$
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.11.11

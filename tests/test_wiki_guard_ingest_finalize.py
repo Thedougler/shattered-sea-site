@@ -5,7 +5,6 @@ import sys
 from pathlib import Path
 
 import pytest
-
 from wiki_guard_test_utils import write_page
 
 
@@ -130,7 +129,9 @@ Storm anchor.
                 "pages_created": ["content/entities/golden_carvers.md"],
                 "pages_updated": ["content/entities/storm_anchor.md"],
                 "links_woven": 4,
-                "contradictions": ["[[golden_carvers]] — founding date conflicts with prior source"],
+                "contradictions": [
+                    "[[golden_carvers]] — founding date conflicts with prior source"
+                ],
                 "log_details": [
                     "CREATED [[golden_carvers]] — salvage guild faction page",
                     "UPDATED [[storm_anchor]] — linked Golden Carvers involvement",
@@ -186,10 +187,14 @@ Storm anchor.
     assert "Golden Carvers created and Storm Anchor updated." in hot_text
     assert "[[golden_carvers]] — founding date conflicts with prior source." in hot_text
     assert "ingest finalize updated .manifest.json, content/log.md, content/hot.md" in out
-    assert "summary: source=raw/factions/Golden-Carvers.md created=1 updated=1 contradictions=1" in out
+    assert (
+        "summary: source=raw/factions/Golden-Carvers.md created=1 updated=1 contradictions=1" in out
+    )
 
 
-def test_main_ingest_finalize_requires_payload_file(tmp_path: Path, monkeypatch, wiki_guard) -> None:
+def test_main_ingest_finalize_requires_payload_file(
+    tmp_path: Path, monkeypatch, wiki_guard
+) -> None:
     _write_content_root(tmp_path)
     monkeypatch.setattr(
         sys,
@@ -272,7 +277,10 @@ def test_main_ingest_finalize_skips_idempotent_rerun(
 
     assert code == 0
     assert first_log == second_log
-    assert "summary: source=raw/factions/Golden-Carvers.md created=1 updated=1 contradictions=0 skipped=1" in out
+    assert (
+        "summary: source=raw/factions/Golden-Carvers.md created=1 "
+        "updated=1 contradictions=0 skipped=1" in out
+    )
 
 
 def test_main_ingest_finalize_batch_updates_multiple_sources(
@@ -316,13 +324,17 @@ def test_main_ingest_finalize_batch_updates_multiple_sources(
                         "pages_created": ["content/entities/storm_cult.md"],
                         "pages_updated": ["content/entities/storm_anchor.md"],
                         "links_woven": 3,
-                        "contradictions": ["[[storm_cult]] — origin story conflicts with prior source"],
+                        "contradictions": [
+                            "[[storm_cult]] — origin story conflicts with prior source"
+                        ],
                         "log_details": ["CREATED [[storm_cult]] — faction page"],
                         "hot": {
                             "recent_activity": "Storm Cult created and Storm Anchor updated.",
                             "active_threads": ["- Storm Cult origin is disputed."],
                             "key_takeaways": ["- Storm Cult ties into the Maw."],
-                            "flagged_contradictions": ["- [[storm_cult]] — origin story conflicts with prior source."],
+                            "flagged_contradictions": [
+                                "- [[storm_cult]] — origin story conflicts with prior source."
+                            ],
                         },
                     },
                 ]
@@ -366,7 +378,10 @@ def test_main_ingest_finalize_batch_updates_multiple_sources(
 # Runner finalize tests
 # ---------------------------------------------------------------------------
 
-def _make_finalize_stub(checkpoint_dir: Path, name: str, source_path: str, content_hash: str) -> Path:
+
+def _make_finalize_stub(
+    checkpoint_dir: Path, name: str, source_path: str, content_hash: str
+) -> Path:
     stub_path = checkpoint_dir / name
     stub_path.write_text(
         json.dumps(
@@ -405,7 +420,9 @@ def test_finalize_runner_dir_processes_completed_stubs(tmp_path: Path, wiki_guar
     checkpoint_dir.mkdir(parents=True)
 
     # One completed stub, one empty (agent hasn't written it yet)
-    _make_finalize_stub(checkpoint_dir, "01_alpha_finalize.json", "raw/Alpha.md", wiki_guard.compute_sha256(src_a))
+    _make_finalize_stub(
+        checkpoint_dir, "01_alpha_finalize.json", "raw/Alpha.md", wiki_guard.compute_sha256(src_a)
+    )
     (checkpoint_dir / "02_beta_finalize.json").write_text("", encoding="utf-8")
 
     result = wiki_guard.finalize_runner_dir(tmp_path, checkpoint_dir)
@@ -453,7 +470,9 @@ def test_main_ingest_runner_finalize_agent_preset(
     _write_content_root(tmp_path)
     checkpoint_dir = tmp_path / ".claude/tmp/ingest_runner"
     checkpoint_dir.mkdir(parents=True)
-    _make_finalize_stub(checkpoint_dir, "01_alpha_finalize.json", "raw/Alpha.md", wiki_guard.compute_sha256(src_a))
+    _make_finalize_stub(
+        checkpoint_dir, "01_alpha_finalize.json", "raw/Alpha.md", wiki_guard.compute_sha256(src_a)
+    )
 
     monkeypatch.setattr(
         sys,

@@ -146,12 +146,13 @@ def test_build_ingest_queue_command_orders_by_pending_list(wiki_guard) -> None:
     command = wiki_guard.build_ingest_queue_command(pending)
 
     assert command == (
-        "/llm-wiki:ingest 'raw/species/Human.md' && "
-        "/llm-wiki:ingest 'raw/species/Tabaxi.md'"
+        "/llm-wiki:ingest 'raw/species/Human.md' && /llm-wiki:ingest 'raw/species/Tabaxi.md'"
     )
 
 
-def test_main_ingest_report_json_with_queue(tmp_path: Path, monkeypatch, capsys, wiki_guard) -> None:
+def test_main_ingest_report_json_with_queue(
+    tmp_path: Path, monkeypatch, capsys, wiki_guard
+) -> None:
     raw_dir = tmp_path / "raw"
     raw_dir.mkdir(parents=True)
     pending_path = raw_dir / "pending.md"
@@ -293,7 +294,9 @@ def test_main_ingest_report_fail_on_pending_returns_zero_when_clean(
     assert code == 0
 
 
-def test_main_ingest_report_writes_output_file(tmp_path: Path, monkeypatch, capsys, wiki_guard) -> None:
+def test_main_ingest_report_writes_output_file(
+    tmp_path: Path, monkeypatch, capsys, wiki_guard
+) -> None:
     raw_dir = tmp_path / "raw"
     raw_dir.mkdir(parents=True)
     (raw_dir / "pending.md").write_text("hello\n", encoding="utf-8")
@@ -327,7 +330,9 @@ def test_main_ingest_report_writes_output_file(tmp_path: Path, monkeypatch, caps
     assert "summary: total=1 pending=1" in out
 
 
-def test_gather_ingest_source_status_ignores_hidden_and_system_files(tmp_path: Path, wiki_guard) -> None:
+def test_gather_ingest_source_status_ignores_hidden_and_system_files(
+    tmp_path: Path, wiki_guard
+) -> None:
     raw_dir = tmp_path / "raw"
     raw_dir.mkdir(parents=True)
     (raw_dir / "valid.md").write_text("ok\n", encoding="utf-8")
@@ -343,7 +348,9 @@ def test_gather_ingest_source_status_ignores_hidden_and_system_files(tmp_path: P
     assert paths == ["raw/valid.md"]
 
 
-def test_main_ingest_report_queue_excludes_hidden_files(tmp_path: Path, monkeypatch, capsys, wiki_guard) -> None:
+def test_main_ingest_report_queue_excludes_hidden_files(
+    tmp_path: Path, monkeypatch, capsys, wiki_guard
+) -> None:
     raw_dir = tmp_path / "raw"
     raw_dir.mkdir(parents=True)
     (raw_dir / "visible.md").write_text("ok\n", encoding="utf-8")

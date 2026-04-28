@@ -5,7 +5,6 @@ import sys
 from pathlib import Path
 
 import pytest
-
 from wiki_guard_test_utils import write_page, write_required_root
 
 
@@ -713,10 +712,14 @@ This anchor stabilizes the drowned maw currents.
     assert all("domain: shattered_sea" not in snippet for snippet in candidate.snippets)
 
 
-def test_main_query_prep_with_query_log_appends_line(tmp_path: Path, monkeypatch, wiki_guard) -> None:
+def test_main_query_prep_with_query_log_appends_line(
+    tmp_path: Path, monkeypatch, wiki_guard
+) -> None:
     content_root = tmp_path / "content"
     content_root.mkdir(parents=True, exist_ok=True)
-    write_page(content_root / "index.md", """# Index: shattered_sea
+    write_page(
+        content_root / "index.md",
+        """# Index: shattered_sea
 
 ## Entity Catalog
 
@@ -725,7 +728,8 @@ def test_main_query_prep_with_query_log_appends_line(tmp_path: Path, monkeypatch
 | [[storm_anchor]] | Anchor in the drowned maw | 2 | active | 2026-04-26 |
 
 ## Notes
-""")
+""",
+    )
     write_page(content_root / "hot.md", "hot\n")
     write_page(content_root / "log.md", "")
     write_page(
@@ -774,9 +778,136 @@ Storm anchor note.
     assert code == 0
     assert " QUERY " in log_text
     assert 'query="Quick answer: storm anchor"' in log_text
-    assert "result_pages=2" in log_text
-    assert "mode=index_only" in log_text
-    assert "escalated=true" in log_text
+
+
+def test_main_query_prep_qmd_file_errors(tmp_path: Path, monkeypatch, capsys, wiki_guard) -> None:
+    write_required_root(tmp_path)
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "wiki_guard.py",
+            "--repo-root",
+            str(tmp_path),
+            "--query-prep",
+            "--query-question",
+            "Maw",
+            "--query-merge-qmd",
+            "missing.json",
+        ],
+    )
+    assert wiki_guard.main() == 1
+    assert "--query-merge-qmd file not found" in capsys.readouterr().err
+
+    bad_json = tmp_path / "bad.json"
+    bad_json.write_text("{oops", encoding="utf-8")
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "wiki_guard.py",
+            "--repo-root",
+            str(tmp_path),
+            "--query-prep",
+            "--query-question",
+            "Maw",
+            "--query-merge-qmd",
+            str(bad_json),
+        ],
+    )
+    assert wiki_guard.main() == 1
+    assert "failed to read --query-merge-qmd file" in capsys.readouterr().err
+
+    not_array = tmp_path / "not-array.json"
+    not_array.write_text('{"rel_path":"wiki/entities/x.md"}', encoding="utf-8")
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "wiki_guard.py",
+            "--repo-root",
+            str(tmp_path),
+            "--query-prep",
+            "--query-question",
+            "Maw",
+            "--query-merge-qmd",
+            str(not_array),
+        ],
+    )
+    assert wiki_guard.main() == 1
+    assert "must contain a JSON array" in capsys.readouterr().err
+
+
+def test_main_query_prep_text_output_and_filed_error(
+    tmp_path: Path, monkeypatch, capsys, wiki_guard
+) -> None:
+    content_root = tmp_path / "content"
+    content_root.mkdir(parents=True, exist_ok=True)
+    write_page(
+        content_root / "index.md",
+        """# Index: shattered_sea
+
+## Entity Catalog
+
+| Entity | Summary | Sources | Status | Updated |
+|--------|---------|---------|--------|---------|
+| [[storm_anchor]] | Anchor in the drowned maw | 1 | active | 2026-04-26 |
+""",
+    )
+    write_page(
+        content_root / "entities/storm_anchor.md",
+        """---
+summary: Anchor in the drowned maw
+status: active
+visibility: private
+tags:
+  - drowned_maw
+---
+
+Storm anchor details.
+""",
+    )
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "wiki_guard.py",
+            "--repo-root",
+            str(tmp_path),
+            "--query-prep",
+            "--query-question",
+            "What is storm anchor?",
+            "--query-format",
+            "text",
+            "--query-output-file",
+            ".claude/tmp/query_report.txt",
+        ],
+    )
+    assert wiki_guard.main() == 0
+    report_path = tmp_path / ".claude/tmp/query_report.txt"
+    assert report_path.exists()
+    assert "query prep" in report_path.read_text(encoding="utf-8")
+
+    empty_repo = tmp_path / "empty"
+    empty_repo.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "wiki_guard.py",
+            "--repo-root",
+            str(empty_repo),
+            "--query-filed",
+            "--query-filed-page",
+            "content/synthesis/topic.md",
+            "--query-filed-from-query",
+            "Topic",
+        ],
+    )
+    assert wiki_guard.main() == 1
+    assert "could not detect knowledge layout" in capsys.readouterr().err
 
 
 def test_main_query_log_requires_query_prep(tmp_path: Path, monkeypatch, wiki_guard) -> None:

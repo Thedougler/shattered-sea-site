@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import cast
 
 from .constants import INDEX_ROW_RE, WIKILINK_RE
 from .ingest_status import (
@@ -89,7 +90,9 @@ def build_ingest_prep(repo_root: Path, source_path: str) -> dict[str, object]:
     knowledge_root_rel = None
     if layout is not None:
         knowledge_root = layout.page_root
-        knowledge_root_rel = knowledge_root.relative_to(repo_root).as_posix() if knowledge_root != repo_root else "."
+        knowledge_root_rel = (
+            knowledge_root.relative_to(repo_root).as_posix() if knowledge_root != repo_root else "."
+        )
         index_path = layout.index_path
         if index_path.exists():
             index_slugs = _load_index_slugs(index_path)
@@ -106,7 +109,9 @@ def build_ingest_prep(repo_root: Path, source_path: str) -> dict[str, object]:
         "size_bytes": raw_path.stat().st_size,
         "content_hash": content_hash,
         "ingest_status": ingest_status,
-        "last_ingested": manifest_entry.get("ingested_at") if isinstance(manifest_entry, dict) else None,
+        "last_ingested": manifest_entry.get("ingested_at")
+        if isinstance(manifest_entry, dict)
+        else None,
         "suggested_entity_slug": suggested_slug,
         "wikilinks": {
             "total_unique": len(targets),
@@ -133,7 +138,11 @@ def build_ingest_batch(
     layout = detect_knowledge_layout(repo_root)
     knowledge_root = None
     if layout is not None:
-        knowledge_root = layout.page_root.relative_to(repo_root).as_posix() if layout.page_root != repo_root else "."
+        knowledge_root = (
+            layout.page_root.relative_to(repo_root).as_posix()
+            if layout.page_root != repo_root
+            else "."
+        )
 
     return {
         "ok": True,
@@ -172,15 +181,20 @@ def build_ingest_runner(
     batch = build_ingest_batch(repo_root, limit=limit, pending_only=pending_only)
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
+    raw_sources = batch.get("sources")
+    sources = cast(list[object], raw_sources) if isinstance(raw_sources, list) else []
+
     steps: list[dict[str, object]] = []
-    for index, item in enumerate(batch["sources"], start=1):
+    for index, item in enumerate(sources, start=1):
         if not isinstance(item, dict):
             continue
         source_path = str(item["source_path"])
         checkpoint_name = f"{index:02d}_{_checkpoint_slug(source_path)}.json"
         checkpoint_path = checkpoint_dir / checkpoint_name
         checkpoint_path.write_text(json.dumps(item, indent=2) + "\n", encoding="utf-8")
-        finalize_stub = checkpoint_dir / f"{index:02d}_{_checkpoint_slug(source_path)}_finalize.json"
+        finalize_stub = (
+            checkpoint_dir / f"{index:02d}_{_checkpoint_slug(source_path)}_finalize.json"
+        )
         steps.append(
             {
                 "step": index,
@@ -202,10 +216,22 @@ def build_ingest_runner(
         "checkpoint_dir": checkpoint_dir.relative_to(repo_root).as_posix(),
         "steps": steps,
         "instructions": [
-            "Read steps in order and consume each prep_file directly instead of calling --ingest-agent again.",
-            "After completing a source, write its finalize payload to the paired finalize_file path.",
-            "When all steps are done, run: wiki_guard --ingest-runner-finalize to process all completed stubs in one pass.",
-            "You may also run --ingest-runner-finalize after each step for incremental bookkeeping.",
+            (
+                "Read steps in order and consume each prep_file directly instead "
+                "of calling --ingest-agent again."
+            ),
+            (
+                "After completing a source, write its finalize payload to the "
+                "paired finalize_file path."
+            ),
+            (
+                "When all steps are done, run: wiki_guard --ingest-runner-finalize "
+                "to process all completed stubs in one pass."
+            ),
+            (
+                "You may also run --ingest-runner-finalize after each step for "
+                "incremental bookkeeping."
+            ),
         ],
     }
     return runner_payload
@@ -264,7 +290,8 @@ def print_ingest_batch(payload: dict[str, object], output_format: str) -> None:
 
     summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
     summary = summary if isinstance(summary, dict) else {}
-    sources = payload.get("sources") if isinstance(payload.get("sources"), list) else []
+    raw_sources = payload.get("sources")
+    sources = cast(list[object], raw_sources) if isinstance(raw_sources, list) else []
     queue = payload.get("queue") if isinstance(payload.get("queue"), dict) else {}
     queue = queue if isinstance(queue, dict) else {}
 
@@ -296,7 +323,8 @@ def print_ingest_runner(payload: dict[str, object], output_format: str) -> None:
 
     summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
     summary = summary if isinstance(summary, dict) else {}
-    steps = payload.get("steps") if isinstance(payload.get("steps"), list) else []
+    raw_steps = payload.get("steps")
+    steps = cast(list[object], raw_steps) if isinstance(raw_steps, list) else []
 
     print("wiki_guard ingest runner")
     print(f"- knowledge_root: {payload.get('knowledge_root')}")

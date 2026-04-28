@@ -33,11 +33,11 @@ The Bard is a charisma-based full caster (d8 hit die) with access to full spell 
 
 ## Core Mechanics
 
-**Primary Ability:** Charisma  
-**Hit Die:** d8  
-**Saving Throws:** Dexterity, Charisma  
-**Armor Proficiency:** Light armor only  
-**Weapon Proficiency:** Simple weapons only  
+**Primary Ability:** Charisma
+**Hit Die:** d8
+**Saving Throws:** Dexterity, Charisma
+**Armor Proficiency:** Light armor only
+**Weapon Proficiency:** Simple weapons only
 **Spellcasting:** Full caster progression; prepared spells using Charisma
 
 ### Bardic Inspiration

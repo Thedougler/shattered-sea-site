@@ -284,6 +284,82 @@ def _slug_from_rel_path(rel_path: str) -> str:
     return stem.lower().replace("-", "_")
 
 
+def _extract_qmd_score(entry: dict[str, Any]) -> float:
+    raw_score = entry.get("score", 0.0)
+    try:
+        return max(0.0, min(1.0, float(raw_score)))
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _extract_links(info: dict[str, Any]) -> list[str]:
+    links_value = info.get("links")
+    links: list[str] = []
+    if isinstance(links_value, list):
+        for item in cast(list[object], links_value):
+            if isinstance(item, str):
+                links.append(item)
+    return links
+
+
+def _build_qmd_candidate(
+    *,
+    slug: str,
+    rel_path: str,
+    qmd_score: float,
+    qmd_snippet: str,
+    inventory: dict[str, Any],
+    index_entries: dict[str, str],
+) -> QueryPrepCandidate:
+    info = inventory.get(slug, {})
+    frontmatter: dict[str, object] = {}
+    fm_value = info.get("frontmatter")
+    if isinstance(fm_value, dict):
+        frontmatter = cast(dict[str, object], fm_value)
+
+    summary_raw = frontmatter.get("summary")
+    status_raw = frontmatter.get("status")
+    visibility_raw = frontmatter.get("visibility")
+    return QueryPrepCandidate(
+        slug=slug,
+        rel_path=rel_path,
+        score=int(qmd_score * 10),
+        match_reasons=[f"qmd:{qmd_score:.2f}"],
+        summary=(
+            summary_raw.strip() if isinstance(summary_raw, str) else index_entries.get(slug, "")
+        ),
+        source_count=_normalize_source_count(frontmatter.get("source_count")),
+        source_refs=_normalize_source_refs(frontmatter.get("sources")),
+        status=status_raw.strip() if isinstance(status_raw, str) else "unknown",
+        visibility=visibility_raw.strip() if isinstance(visibility_raw, str) else "unknown",
+        tags=_normalize_list(frontmatter.get("tags")),
+        aliases=_normalize_list(frontmatter.get("aliases")),
+        outbound_links=_extract_links(info),
+        snippets=[],
+        qmd_score=qmd_score,
+        qmd_snippets=[qmd_snippet] if qmd_snippet else [],
+    )
+
+
+def _rank_secondary(
+    *,
+    primary: list[QueryPrepCandidate],
+    by_slug: dict[str, QueryPrepCandidate],
+    top_k: int,
+) -> list[QueryPrepCandidate]:
+    primary_slugs = {item.slug for item in primary}
+    secondary_counts: Counter[str] = Counter()
+    for candidate in primary:
+        for target in candidate.outbound_links:
+            if target not in primary_slugs and target in by_slug:
+                secondary_counts[target] += 1
+    secondary_ranked = sorted(
+        secondary_counts.items(),
+        key=lambda entry: (-entry[1], -by_slug[entry[0]].score, entry[0]),
+    )
+    return [by_slug[slug] for slug, _ in secondary_ranked[:top_k]]
+
+
 def merge_qmd_results(
     candidates: list[QueryPrepCandidate],
     qmd_data: list[dict[str, Any]],
@@ -307,68 +383,26 @@ def merge_qmd_results(
         rel_path = entry.get("rel_path", "")
         if not rel_path:
             continue
-        raw_score = entry.get("score", 0.0)
-        try:
-            qmd_score = max(0.0, min(1.0, float(raw_score)))
-        except (TypeError, ValueError):
-            qmd_score = 0.0
+        qmd_score = _extract_qmd_score(entry)
         qmd_snippet: str = entry.get("snippet", "")
-
-        # Match by rel_path first, then by derived slug
         slug = existing_paths.get(rel_path) or _slug_from_rel_path(rel_path)
-
-        if slug in by_slug:
-            c = by_slug[slug]
-            boost = int(qmd_score * 15)
-            c.score += boost
-            c.qmd_score = qmd_score
-            if qmd_snippet and qmd_snippet not in c.qmd_snippets:
-                c.qmd_snippets.append(qmd_snippet)
-            if "qmd_semantic" not in c.match_reasons:
-                c.match_reasons.append(f"qmd:{qmd_score:.2f}")
-        else:
-            # New candidate from QMD not found by keyword scoring
-            info = inventory.get(slug, {})
-            frontmatter: dict[str, object] = {}
-            fm_value = info.get("frontmatter")
-            if isinstance(fm_value, dict):
-                frontmatter = cast(dict[str, object], fm_value)
-
-            summary_raw = frontmatter.get("summary")
-            summary = summary_raw.strip() if isinstance(summary_raw, str) else ""
-            tags = _normalize_list(frontmatter.get("tags"))
-            aliases = _normalize_list(frontmatter.get("aliases"))
-            source_count = _normalize_source_count(frontmatter.get("source_count"))
-            source_refs = _normalize_source_refs(frontmatter.get("sources"))
-            status_raw = frontmatter.get("status")
-            status = status_raw.strip() if isinstance(status_raw, str) else "unknown"
-            visibility_raw = frontmatter.get("visibility")
-            visibility = visibility_raw.strip() if isinstance(visibility_raw, str) else "unknown"
-            links_value = info.get("links")
-            links: list[str] = []
-            if isinstance(links_value, list):
-                for t in cast(list[object], links_value):
-                    if isinstance(t, str):
-                        links.append(t)
-
-            new_candidate = QueryPrepCandidate(
-                slug=slug,
-                rel_path=rel_path,
-                score=int(qmd_score * 10),
-                match_reasons=[f"qmd:{qmd_score:.2f}"],
-                summary=summary or index_entries.get(slug, ""),
-                source_count=source_count,
-                source_refs=source_refs,
-                status=status,
-                visibility=visibility,
-                tags=tags,
-                aliases=aliases,
-                outbound_links=links,
-                snippets=[],
-                qmd_score=qmd_score,
-                qmd_snippets=[qmd_snippet] if qmd_snippet else [],
-            )
-            by_slug[slug] = new_candidate
+        existing = by_slug.get(slug)
+        if existing is not None:
+            existing.score += int(qmd_score * 15)
+            existing.qmd_score = qmd_score
+            if qmd_snippet and qmd_snippet not in existing.qmd_snippets:
+                existing.qmd_snippets.append(qmd_snippet)
+            if f"qmd:{qmd_score:.2f}" not in existing.match_reasons:
+                existing.match_reasons.append(f"qmd:{qmd_score:.2f}")
+            continue
+        by_slug[slug] = _build_qmd_candidate(
+            slug=slug,
+            rel_path=rel_path,
+            qmd_score=qmd_score,
+            qmd_snippet=qmd_snippet,
+            inventory=inventory,
+            index_entries=index_entries,
+        )
 
     merged = sorted(by_slug.values(), key=lambda c: (-c.score, c.slug))
     return merged
@@ -420,22 +454,8 @@ def gather_query_prep(
 
     ranked.sort(key=lambda item: (-item.score, item.slug))
     primary = ranked[:capped_top_k]
-    primary_slugs = {item.slug for item in primary}
-
-    secondary_counts: Counter[str] = Counter()
     by_slug = {item.slug: item for item in ranked}
-    for candidate in primary:
-        for target in candidate.outbound_links:
-            if target in primary_slugs:
-                continue
-            if target in by_slug:
-                secondary_counts[target] += 1
-
-    secondary_ranked = sorted(
-        secondary_counts.items(),
-        key=lambda entry: (-entry[1], -by_slug[entry[0]].score, entry[0]),
-    )
-    secondary = [by_slug[slug] for slug, _ in secondary_ranked[:capped_top_k]]
+    secondary = _rank_secondary(primary=primary, by_slug=by_slug, top_k=capped_top_k)
 
     # Merge QMD semantic results if provided, then re-slice primary/secondary
     qmd_merged = False
@@ -448,21 +468,8 @@ def gather_query_prep(
             question_tokens=question_tokens,
         )
         primary = all_merged[:capped_top_k]
-        primary_slugs = {c.slug for c in primary}
-        # Rebuild secondary from merged list
-        secondary_counts2: Counter[str] = Counter()
-        by_slug2 = {c.slug: c for c in all_merged}
-        for candidate in primary:
-            for target in candidate.outbound_links:
-                if target in primary_slugs:
-                    continue
-                if target in by_slug2:
-                    secondary_counts2[target] += 1
-        secondary_ranked2 = sorted(
-            secondary_counts2.items(),
-            key=lambda entry: (-entry[1], -by_slug2[entry[0]].score, entry[0]),
-        )
-        secondary = [by_slug2[s] for s, _ in secondary_ranked2[:capped_top_k]]
+        by_slug = {candidate.slug: candidate for candidate in all_merged}
+        secondary = _rank_secondary(primary=primary, by_slug=by_slug, top_k=capped_top_k)
         qmd_merged = True
 
     # Compute per-candidate read strategy
@@ -518,14 +525,8 @@ def render_query_prep_json(result: QueryPrepResult) -> str:
         "top_k": result.top_k,
         "qmd_merged": result.qmd_merged,
         "excluded_internal_count": result.excluded_internal_count,
-        "primary": [
-            _candidate_to_dict(candidate)
-            for candidate in result.primary
-        ],
-        "secondary": [
-            _candidate_to_dict(candidate)
-            for candidate in result.secondary
-        ],
+        "primary": [_candidate_to_dict(candidate) for candidate in result.primary],
+        "secondary": [_candidate_to_dict(candidate) for candidate in result.secondary],
     }
     return json.dumps(payload, indent=2)
 
@@ -611,7 +612,7 @@ def append_query_log(
 
     timestamp = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
     normalized_mode = normalize_query_log_mode(mode)
-    escaped_question = question.replace('"', "\\\"")
+    escaped_question = question.replace('"', '\\"')
     line = (
         f'- [{timestamp}] QUERY query="{escaped_question}" '
         f"result_pages={max(0, result_pages)} mode={normalized_mode} "
@@ -639,8 +640,8 @@ def append_filed_log(
         log_path.write_text("", encoding="utf-8")
 
     timestamp = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-    escaped_page = page.replace('"', "\\\"")
-    escaped_query = from_query.replace('"', "\\\"")
+    escaped_page = page.replace('"', '\\"')
+    escaped_query = from_query.replace('"', '\\"')
     line = f'- [{timestamp}] FILED page="{escaped_page}" from_query="{escaped_query}"'
     with log_path.open("a", encoding="utf-8") as handle:
         handle.write(line + "\n")

@@ -29,8 +29,12 @@ def detect_knowledge_layout(repo_root: Path) -> KnowledgeLayout | None:
         return KnowledgeLayout(
             page_root=wiki_root,
             index_path=root_index if root_index.exists() else wiki_index,
-            log_path=(repo_root / "log.md") if (repo_root / "log.md").exists() else (wiki_root / "log.md"),
-            hot_path=(repo_root / "hot.md") if (repo_root / "hot.md").exists() else (wiki_root / "hot.md"),
+            log_path=(repo_root / "log.md")
+            if (repo_root / "log.md").exists()
+            else (wiki_root / "log.md"),
+            hot_path=(repo_root / "hot.md")
+            if (repo_root / "hot.md").exists()
+            else (wiki_root / "hot.md"),
         )
 
     if root_index.exists():

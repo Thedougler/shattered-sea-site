@@ -5,7 +5,6 @@ import sys
 from pathlib import Path
 
 import pytest
-
 from wiki_guard_test_utils import write_page
 
 
@@ -168,7 +167,9 @@ status: active
     assert all("storm" in {item.left_slug, item.right_slug} for item in report.top_candidates)
 
 
-def test_main_synthesize_report_json_output(tmp_path: Path, monkeypatch, capsys, wiki_guard) -> None:
+def test_main_synthesize_report_json_output(
+    tmp_path: Path, monkeypatch, capsys, wiki_guard
+) -> None:
     _write_env(tmp_path, "OBSIDIAN_VAULT_PATH=.\n")
 
     write_page(
@@ -306,7 +307,9 @@ category: synthesis
     assert '"top_candidates": []' in out_json
 
 
-def test_main_synthesize_report_cli_conflict_errors(tmp_path: Path, monkeypatch, wiki_guard) -> None:
+def test_main_synthesize_report_cli_conflict_errors(
+    tmp_path: Path, monkeypatch, wiki_guard
+) -> None:
     _write_env(tmp_path, "OBSIDIAN_VAULT_PATH=.\n")
     write_page(
         tmp_path / "wiki/entities/a.md",

@@ -3,8 +3,6 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-import pytest
-
 from wiki_guard_test_utils import write_page, write_required_root
 
 

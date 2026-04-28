@@ -274,7 +274,10 @@ def test_status_audit_helpers_cover_edge_cases(tmp_path: Path, wiki_guard) -> No
     assert doc_rows[0]["source_type"] == "document"
 
     assert status_audit._scan_claude_history(tmp_path, {}) == ([], {})
-    assert status_audit._scan_claude_history(tmp_path, {"CLAUDE_HISTORY_PATH": "missing"}) == ([], {})
+    assert status_audit._scan_claude_history(tmp_path, {"CLAUDE_HISTORY_PATH": "missing"}) == (
+        [],
+        {},
+    )
 
     other_file = tmp_path / "notes.txt"
     other_file.write_text("note\n", encoding="utf-8")
@@ -284,7 +287,7 @@ def test_status_audit_helpers_cover_edge_cases(tmp_path: Path, wiki_guard) -> No
             "notes.txt": {"project": 7},
             "raw/file.md": {"source_type": "document"},
         },
-        existing_keys={doc_rows[0]["source_path"]},
+        existing_keys={str(doc_rows[0]["source_path"])},
     )
     assert len(extras) == 1
     assert extras[0]["source_type"] == "external"
