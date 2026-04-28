@@ -8,6 +8,7 @@ from contextlib import redirect_stdout
 from pathlib import Path
 from typing import Any, cast
 
+from .ingest_finalize import finalize_ingest, finalize_runner_dir
 from .ingest_prep import (
     build_ingest_batch,
     build_ingest_prep,
@@ -16,7 +17,6 @@ from .ingest_prep import (
     print_ingest_prep,
     print_ingest_runner,
 )
-from .ingest_finalize import finalize_ingest, finalize_runner_dir
 from .ingest_status import (
     gather_ingest_source_status,
     has_pending_ingest_sources,

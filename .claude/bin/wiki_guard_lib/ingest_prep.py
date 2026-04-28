@@ -4,8 +4,12 @@ import json
 from pathlib import Path
 
 from .constants import INDEX_ROW_RE, WIKILINK_RE
-from .ingest_status import build_ingest_queue_command, gather_ingest_source_status
-from .ingest_status import compute_sha256, load_manifest_sources
+from .ingest_status import (
+    build_ingest_queue_command,
+    compute_sha256,
+    gather_ingest_source_status,
+    load_manifest_sources,
+)
 from .knowledge_layout import detect_knowledge_layout
 
 _DOCUMENT_EXTENSIONS = {".md", ".txt", ".rst"}
