@@ -10,60 +10,38 @@ description: >
 
 # Wiki Synthesize — First-Class Synthesis Discovery
 
+> **Prerequisite:** Load the `llm-wiki` skill first. It establishes `KNOWLEDGE_ROOT` (`content/`), vault layout, and retrieval primitives. Do not proceed without it.
+
 You are scanning the wiki for concepts that co-occur across many pages but have no dedicated synthesis page connecting them. Your job is to surface these gaps and fill the most valuable ones with cross-cutting synthesis pages.
 
-## Before You Start
+`content/index.md` and `content/hot.md` are already in context from `llm-wiki`. Review `hot.md` **Recent Activity** and **Active Threads** — they may already point to synthesis opportunities before you run the scan.
 
-1. Read `.env` to get `OBSIDIAN_VAULT_PATH`.
-2. Read `index.md` to get the full page inventory.
-3. Read `hot.md` if it exists — it surfaces recent activity and active threads that may already point to synthesis opportunities.
+## Step 1: Get Synthesis Candidates
 
-## Step 1: Build the Co-occurrence Map
+Run the wiki_guard synthesis scanner. It scans all `content/` pages (skipping index/log/hot/archives), builds the co-occurrence matrix, filters already-synthesized pairs, scores and ranks candidates — all in one shot:
 
-Scan every non-special page in the vault (skip `index.md`, `log.md`, `hot.md`, `_insights.md`, `_meta/*`, `archives/*`, `raw/*`).
-
-For each page, collect:
-- All `[[wikilinks]]` it contains (outgoing links)
-- Its `tags` frontmatter
-- Its `category` frontmatter
-
-Build a co-occurrence matrix: for every pair of concept/entity pages (A, B), count how many other pages link to **both** A and B. This is their co-occurrence score.
-
-You don't need to be exhaustive — aim for the top 20-30 pairs by co-occurrence score. Use Grep to find backlinks efficiently:
-
-```bash
-grep -rl "\[\[ConceptA\]\]" "$OBSIDIAN_VAULT_PATH" --include="*.md"
+```
+python .claude/bin/wiki_guard.py --synthesize-report --synthesize-format json
 ```
 
-Run this for your top candidate concepts and intersect the result sets.
+Optional flags:
+- `--synthesize-topic "..."` — filter candidates to a domain (e.g. `"religion"` or `"factions"`)
+- `--synthesize-pair-limit N` — pairs to scan (default 100; increase for broader coverage)
+- `--synthesize-top-candidates N` — how many top candidates to return (default 5)
+- `--synthesize-skipped-limit N` — how many skipped candidates to include in output
 
-## Step 2: Filter Out Already-Synthesized Pairs
+The JSON payload contains:
+- `overview` — pages scanned, pairs evaluated, covered pairs filtered
+- `top_candidates` — ranked list with `score`, `cooccurrence_count`, `shared_by_pages`, `cross_domain`, `contradiction_signal`
+- `skipped_candidates` — next-best pairs not in the top set
 
-Check the `synthesis/` directory for existing pages. For each existing synthesis page:
-- Read its `sources` frontmatter or its body for `[[wikilinks]]`
-- Mark those concept pairs as already covered
+If wiki_guard fails or returns empty candidates, invoke the `wiki-tooling-fixer` agent rather than attempting a manual co-occurrence scan.
 
-Remove covered pairs from your candidate list.
+Review `top_candidates`. Each entry has `shared_by_pages` — use `read_file` on those source pages (batched in parallel) to gather context before drafting.
 
-## Step 3: Score and Rank Candidates
+## Step 2: Draft Synthesis Pages
 
-For each remaining candidate pair (or cluster of 3+), assign a synthesis value score:
-
-| Signal | Points |
-|---|---|
-| Co-occurrence count ≥ 5 | +3 |
-| Co-occurrence count 3-4 | +2 |
-| Co-occurrence count 1-2 | +1 |
-| Concepts are in different categories (cross-domain) | +2 |
-| Concepts share tags but live in different folders | +1 |
-| One or both concepts are tagged as hubs in `_insights.md` | +1 |
-| A synthesis would resolve a flagged contradiction | +2 |
-
-Pick the top 5 candidates. If the user asked for a specific topic ("synthesize everything about observability"), filter candidates to that domain first.
-
-## Step 4: Draft Synthesis Pages
-
-For each top candidate, create a page in `synthesis/` using this template:
+For each top candidate, create a page in `content/synthesis/` using this template:
 
 ```markdown
 ---
@@ -113,7 +91,7 @@ provenance:
 
 **The title format is `A × B`** — this signals to readers that it's a synthesis page, not a page about either concept alone.
 
-## Step 5: Back-link from Source Pages
+## Step 3: Back-link from Source Pages
 
 For each synthesis page you created, add a link to it from the two (or more) concept pages it synthesizes. In the concept page, add to its `## Related` section:
 
@@ -123,28 +101,27 @@ For each synthesis page you created, add a link to it from the two (or more) con
 
 If the concept page has no `## Related` section, add one at the bottom.
 
-## Step 6: Report Synthesis Opportunities Not Taken
+## Step 4: Report Skipped Candidates
 
-After creating pages for the top 5, list the next 10 candidates in your output — pairs that scored well but you didn't write pages for. This gives the user visibility into what the wiki thinks is worth exploring without forcing every synthesis in one run.
+The `skipped_candidates` array from the Step 1 JSON payload is your ready-made list. Surface it directly in your output — no manual enumeration needed. Format for the user:
 
-Format:
 ```
 Skipped (consider next time):
-- [[Caching]] × [[Consistency]] — co-occurs in 4 pages, cross-domain
-- [[Testing]] × [[Observability]] — co-occurs in 3 pages, shares tags
+- [[the_drowned_maw]] × [[umberlee]] — co-occurs in 13 pages
+- [[fisks_fleet]] × [[pearl_of_souls]] — co-occurs in 11 pages, shared tags: central_conflict
 ...
 ```
 
-## Step 7: Update Special Files
+## Step 5: Update Special Files
 
-**`index.md`** — Add entries for all new synthesis pages.
+**`content/index.md`** — Add entries for all new synthesis pages.
 
-**`log.md`** — Append:
+**`content/log.md`** — Append:
 ```
 - [TIMESTAMP] WIKI_SYNTHESIZE pages_scanned=N synthesis_created=M candidates_skipped=K
 ```
 
-**`hot.md`** — Read `$OBSIDIAN_VAULT_PATH/hot.md` (create from the template in `/llm-wiki:ingest` if missing). Update **Recent Activity** with what was synthesized — e.g. "Synthesized 5 cross-cutting pages: Caching × Consistency, Testing × Observability, …". Update **Active Threads** with any open questions the synthesis surfaced. Update `updated` timestamp.
+**`content/hot.md`** — Update **Recent Activity** with what was synthesized — e.g. "Synthesized 5 cross-cutting pages: [[A × B]], [[C × D]], …". Update **Active Threads** with any open questions the synthesis surfaced. Update `updated` timestamp. If `content/hot.md` is missing, create it using the template from the `ingest` skill.
 
 ## Quality Checklist
 
@@ -152,12 +129,12 @@ Skipped (consider next time):
 - [ ] Every synthesis page links back to its source concepts
 - [ ] Source concept pages link forward to the synthesis page
 - [ ] No synthesis page just restates what's already on the source pages — it must add a cross-cutting insight
-- [ ] `index.md` and `log.md` updated
-- [ ] `hot.md` updated
+- [ ] `content/index.md` and `content/log.md` updated
+- [ ] `content/hot.md` updated
 
 ## Tips
 
 - **A synthesis page that only summarizes its sources is useless.** The value is the connection — the thing neither source page says explicitly.
 - **Don't synthesize for synthesis's sake.** If two concepts just happen to appear together a lot without a real conceptual link, skip them.
 - **Three-way syntheses are powerful but rare.** Only create them when three concepts form a genuine triangle of mutual influence — not just because all three appear in the same project page.
-- **Check `_insights.md` first.** `/llm-wiki:wiki-status` (insights mode) may have already flagged synthesis candidates there — start with those before running the co-occurrence scan from scratch.
+- **Check `content/hot.md` first.** The **wiki-status** skill (insights mode) may have already flagged synthesis candidates in **Active Threads** — review those before running the co-occurrence scan from scratch.
